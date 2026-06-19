@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# OS / editor / local tooling
+.DS_Store
+*.swp
+.idea/
+.vscode/
+.claude/
+
+# Local debug output
+captura-debug.log
+
+# Local AI-assistant notes (keep private)
+CLAUDE.md
+
+# Local-only notes (not published)
+notes/

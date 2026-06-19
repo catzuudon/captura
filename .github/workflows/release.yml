@@ -1,0 +1,116 @@
+name: Release
+
+# Builds installers for macOS, Windows, and Linux on GitHub's native runners
+# and publishes them to a GitHub Release whenever a version tag is pushed.
+#
+#   git tag v1.0.0 && git push origin v1.0.0
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-build.txt
+      - name: Build .app and DMG
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          pyinstaller --noconfirm --windowed --name Captura \
+            --osx-bundle-identifier com.captura.app \
+            --icon assets/icon.icns \
+            --add-data "assets:assets" \
+            --specpath build main.py
+          plutil -replace LSUIElement -bool true dist/Captura.app/Contents/Info.plist
+          plutil -replace CFBundleShortVersionString -string "$VERSION" dist/Captura.app/Contents/Info.plist
+          plutil -replace CFBundleVersion -string "$VERSION" dist/Captura.app/Contents/Info.plist
+          codesign --force --deep -s - dist/Captura.app
+          STAGING=$(mktemp -d)
+          cp -R dist/Captura.app "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+          hdiutil create -volname Captura -srcfolder "$STAGING" -ov -format UDZO \
+            "dist/Captura-$VERSION-macos.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-build.txt
+      - name: Build .exe
+        run: >
+          pyinstaller --noconfirm --windowed --name Captura
+          --icon assets/icon.ico
+          --add-data "assets;assets"
+          --specpath build main.py
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $v = $env:GITHUB_REF_NAME -replace '^v',''
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$v scripts\captura.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*setup.exe
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0 libegl1
+      - run: pip install -r requirements-build.txt
+      - name: Build tarball
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          pyinstaller --noconfirm --windowed --name Captura \
+            --icon assets/icon.ico \
+            --add-data "assets:assets" \
+            --specpath build main.py
+          tar -czf "dist/Captura-$VERSION-linux-x86_64.tar.gz" -C dist Captura
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*.tar.gz
+
+  release:
+    needs: [macos, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+          body: |
+            Captura ${{ github.ref_name }}
+
+            Download for your platform below. See the README for install steps and
+            the one-time macOS permission grants (Screen Recording + Input Monitoring).
+
+            **Unsigned builds**: macOS/Windows will warn on first launch — this is
+            expected for an open-source app without a paid signing certificate. See
+            the README "Verifying downloads" section.

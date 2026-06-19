@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Captura — screenshot, annotate &amp; OCR</title>
+<meta name="description" content="Press a key, drag to select, annotate, copy. Captura is a minimalist, open-source screenshot tool with built-in on-device OCR. macOS, Windows, and Linux.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f7dff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v2'/%3E%3Cpath d='M20 16v2a2 2 0 0 1-2 2h-2'/%3E%3Cpath d='M8 20H6a2 2 0 0 1-2-2v-2'/%3E%3Ccircle cx='12' cy='12' r='3.1'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Captura — screenshot, annotate & OCR">
+<meta property="og:description" content="Press a key, drag to select, annotate, copy. Built-in on-device OCR. Open source, macOS / Windows / Linux.">
+<style>
+  :root{ --accent:#4f7dff; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:#08080a;color:#f4f4f6;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  a{color:inherit}
+  ::selection{background:rgba(79,125,255,.32)}
+  @keyframes capSel{0%,5%{width:0;height:0;opacity:0}12%{opacity:1}45%{width:300px;height:170px;opacity:1}86%{width:300px;height:170px;opacity:1}95%,100%{width:300px;height:170px;opacity:0}}
+  @keyframes keyTap{0%,4%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.95)}10%,22%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}30%,100%{opacity:0;transform:translateX(-50%) translateY(0) scale(1)}}
+  @keyframes toastPop{0%,72%{opacity:0;transform:translate(-50%,8px)}80%,92%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,4px)}}
+  @keyframes scanMove{0%{top:-2%}100%{top:102%}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  .mono{font-family:ui-monospace,'SF Mono',Menlo,monospace}
+  [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  [data-reveal].shown{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){
+    [data-reveal]{opacity:1;transform:none;transition:none}
+    .demo *{animation:none !important}
+  }
+  /* nav links hidden on small screens */
+  @media (max-width:760px){ .navlinks{display:none !important} }
+</style>
+</head>
+<body>
+<div id="root" style="position:relative;min-height:100vh;overflow:hidden">
+
+  <!-- ambient glow -->
+  <div style="position:absolute;top:-260px;left:50%;transform:translateX(-50%);width:1100px;height:620px;background:radial-gradient(60% 60% at 50% 40%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%);filter:blur(40px);opacity:.5;pointer-events:none;z-index:0"></div>
+
+  <!-- NAV -->
+  <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 24px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(8,8,10,.66);border-bottom:1px solid rgba(255,255,255,.06)">
+    <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#f4f4f6">
+      <span style="display:flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:9px;background:#141418;border:1px solid rgba(255,255,255,.08);color:var(--accent)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
+      </span>
+      <span style="font-size:16px;font-weight:650;letter-spacing:-.01em">Captura</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="display:flex;align-items:center;gap:2px" class="navlinks">
+        <a href="#features" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">Features</a>
+        <a href="#how" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">How it works</a>
+        <a href="#playground" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">Playground</a>
+        <a href="#ocr" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">OCR</a>
+      </div>
+      <a href="#download" style="margin-left:8px;text-decoration:none;font-size:14px;font-weight:600;color:#fff;padding:9px 16px;border-radius:9px;background:var(--accent);box-shadow:0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent)" data-hover="filter:brightness(1.08)">Download</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header id="top" style="position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:72px 24px 40px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+      <div style="flex:1 1 360px;min-width:320px">
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);font-size:12.5px;color:#b9b9c0" class="mono">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)"></span>Open-source · cross-platform
+        </div>
+        <h1 style="margin:22px 0 0;font-size:54px;line-height:1.04;letter-spacing:-.03em;font-weight:680;background:linear-gradient(180deg,#fff,#c8c8d0);-webkit-background-clip:text;background-clip:text;color:transparent">Snap it. Mark it up.<br>Pull the text out.</h1>
+        <p style="margin:22px 0 0;font-size:18px;line-height:1.55;color:#9a9aa2;max-width:480px">Press a key, drag to select, annotate, copy. Built-in OCR lifts text from anything on your screen — no popups, no noise.</p>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:32px">
+          <a id="dl-hero" href="#download" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-size:15px;font-weight:600;color:#fff;padding:13px 22px;border-radius:11px;background:var(--accent);box-shadow:0 10px 30px color-mix(in srgb, var(--accent) 38%, transparent)" data-hover="transform:translateY(-1px);filter:brightness(1.07)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            <span id="dl-hero-label">Download for macOS</span>
+          </a>
+          <a id="gh-hero" href="#download" style="text-decoration:none;font-size:14.5px;color:#b9b9c0;border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:2px" data-hover="color:#fff">See all downloads on GitHub →</a>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:26px">
+          <span id="ver-pill" style="display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);background:color-mix(in srgb, var(--accent) 10%, transparent);font-size:12.5px;color:#dfe2ff" class="mono"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent)"></span>Free &amp; open source</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.08);font-size:12.5px;color:#b9b9c0" class="mono">macOS · Windows · Linux</span>
+        </div>
+      </div>
+
+      <!-- animated capture demo -->
+      <div style="flex:1 1 380px;min-width:340px">
+        <div class="demo" style="position:relative;width:100%;aspect-ratio:16/10;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.09);background:linear-gradient(135deg,#15151c,#0b0b10);box-shadow:0 30px 80px rgba(0,0,0,.55)">
+          <div style="position:absolute;inset:26px 30px 26px 30px;border-radius:11px;background:#101015;border:1px solid rgba(255,255,255,.07);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)">
+              <span style="width:9px;height:9px;border-radius:50%;background:#ff5f57"></span>
+              <span style="width:9px;height:9px;border-radius:50%;background:#febc2e"></span>
+              <span style="width:9px;height:9px;border-radius:50%;background:#28c840"></span>
+              <span style="margin-left:8px;font-size:11px;color:#5f5f68" class="mono">Inbox — 3 unread</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:11px">
+              <div style="height:9px;width:62%;border-radius:5px;background:rgba(255,255,255,.14)"></div>
+              <div style="height:8px;width:88%;border-radius:5px;background:rgba(255,255,255,.07)"></div>
+              <div style="height:8px;width:80%;border-radius:5px;background:rgba(255,255,255,.07)"></div>
+              <div style="height:8px;width:70%;border-radius:5px;background:rgba(255,255,255,.07)"></div>
+              <div style="height:30px;width:42%;border-radius:7px;background:color-mix(in srgb, var(--accent) 22%, transparent);margin-top:4px"></div>
+            </div>
+          </div>
+          <div style="position:absolute;top:14px;left:50%;animation:keyTap 5.5s infinite;z-index:5">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;background:rgba(16,16,20,.9);border:1px solid rgba(255,255,255,.14);font-size:12px;color:#e8e8ee;box-shadow:0 8px 24px rgba(0,0,0,.4)" class="mono">⌘ ⇧ 7</span>
+          </div>
+          <div style="position:absolute;left:62px;top:58px;border:1.5px solid var(--accent);background:color-mix(in srgb, var(--accent) 7%, transparent);box-shadow:0 0 0 1600px rgba(5,5,7,.6);animation:capSel 5.5s infinite;z-index:4">
+            <span style="position:absolute;top:-4px;left:-4px;width:7px;height:7px;background:var(--accent)"></span>
+            <span style="position:absolute;top:-4px;right:-4px;width:7px;height:7px;background:var(--accent)"></span>
+            <span style="position:absolute;bottom:-4px;left:-4px;width:7px;height:7px;background:var(--accent)"></span>
+            <span style="position:absolute;bottom:-4px;right:-4px;width:7px;height:7px;background:var(--accent)"></span>
+            <span style="position:absolute;bottom:-24px;right:0;font-size:11px;color:#fff;background:var(--accent);padding:2px 7px;border-radius:5px" class="mono">300 × 170</span>
+          </div>
+          <div style="position:absolute;left:50%;bottom:16px;animation:toastPop 5.5s infinite;z-index:6">
+            <span style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;background:rgba(16,16,20,.94);border:1px solid rgba(255,255,255,.1);font-size:12.5px;color:#e8e8ee" class="mono">
+              <span style="color:#28c840">✓</span> Copied to clipboard
+            </span>
+          </div>
+        </div>
+        <p style="margin:12px 2px 0;font-size:12px;color:#5f5f68;text-align:center" class="mono">live preview — capture → select → copy</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- FEATURES -->
+  <section id="features" style="position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
+    <div data-reveal style="margin-bottom:34px">
+      <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">Features</p>
+      <h2 style="margin:10px 0 0;font-size:34px;letter-spacing:-.02em;font-weight:650">Everything in the capture bar</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
+      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
+        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"></circle></svg>
+        </div>
+        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Instant capture</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Global hotkey, frozen dimmed screen, drag to select with live dimensions.</p>
+      </div>
+      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
+        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M9 4v16M15 4v16M4 9h16M4 15h16"></path></svg>
+        </div>
+        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Adjustable frame</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Resize or move the capture frame before you copy. Nothing is final early.</p>
+      </div>
+      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
+        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l4 4"></path><path d="M4 20l4-1 9.5-9.5a2.1 2.1 0 0 0-3-3L5 16l-1 4z"></path></svg>
+        </div>
+        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Annotate</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Pen, arrow, shapes, text, highlighter — with undo/redo and a color palette.</p>
+      </div>
+      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
+        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px;font-size:13px;font-weight:700" class="mono">OCR</div>
+        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Local OCR</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Extract text from any region, fully on-device. Nothing leaves your device.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" style="position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);background:#0b0b0e">
+    <div style="max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
+      <div data-reveal style="margin-bottom:40px">
+        <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">How it works</p>
+        <h2 style="margin:10px 0 0;font-size:34px;letter-spacing:-.02em;font-weight:650">From keypress to clipboard in seconds</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px">
+        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
+          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">1</div>
+          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Press the hotkey</h3>
+          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">A global shortcut (configurable) freezes and dims the screen, ready to capture.</p>
+          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">⌘ ⇧ 7</span>
+        </div>
+        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
+          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">2</div>
+          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Drag to select</h3>
+          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">Pull out any region with live pixel dimensions. Resize or move before you commit.</p>
+          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">812 × 488</span>
+        </div>
+        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
+          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">3</div>
+          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Annotate (optional)</h3>
+          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">Pen, arrow, shapes, text, highlighter — undo/redo and a color palette.</p>
+          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">✎ markup</span>
+        </div>
+        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
+          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">4</div>
+          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Copy or extract</h3>
+          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">Copy the image, or run local OCR to grab the text. Done.</p>
+          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">⌘ C / OCR</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYGROUND -->
+  <section id="playground" style="position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
+    <div data-reveal style="margin-bottom:28px;max-width:620px">
+      <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">Try it</p>
+      <h2 style="margin:10px 0 10px;font-size:34px;letter-spacing:-.02em;font-weight:650">The annotation tools, right here</h2>
+      <p style="margin:0;font-size:16px;line-height:1.55;color:#9a9aa2">Pick a tool and a color, then draw on the canvas below — the same overlay you get after a capture.</p>
+    </div>
+    <div data-reveal style="border-radius:16px;background:#0e0e12;border:1px solid rgba(255,255,255,.08);overflow:hidden">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);background:#101015">
+        <div style="display:flex;gap:6px">
+          <button class="tool" data-tool="pen" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l4 4"></path><path d="M4 20l4-1 9.5-9.5a2.1 2.1 0 0 0-3-3L5 16l-1 4z"></path></svg>Pen</button>
+          <button class="tool" data-tool="arrow" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg>Arrow</button>
+          <button class="tool" data-tool="rect" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1.5"></rect></svg>Box</button>
+          <button class="tool" data-tool="marker" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v4h4l4-4"></path><path d="M13 7l4 4 3-3a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0z"></path></svg>Marker</button>
+        </div>
+        <div style="width:1px;height:24px;background:rgba(255,255,255,.1)"></div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <button class="swatch" data-color="#f4f4f6" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#f4f4f6"></button>
+          <button class="swatch" data-color="#4f7dff" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#4f7dff"></button>
+          <button class="swatch" data-color="#ff5c5c" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#ff5c5c"></button>
+          <button class="swatch" data-color="#ffd23f" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#ffd23f"></button>
+          <button class="swatch" data-color="#38d39f" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#38d39f"></button>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;gap:6px">
+          <button id="pg-undo" style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer" data-hover="border-color:rgba(255,255,255,.2);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-1"></path></svg>Undo</button>
+          <button id="pg-clear" style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer" data-hover="border-color:rgba(255,92,92,.5);color:#ff8a8a">Clear</button>
+        </div>
+      </div>
+      <div id="cvwrap" style="position:relative;height:380px;background:repeating-linear-gradient(135deg,#0c0c10 0 12px,#0e0e13 12px 24px)">
+        <div style="position:absolute;inset:14px;border-radius:10px;border:1px dashed rgba(255,255,255,.07)"></div>
+        <div id="pg-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <span style="font-size:13px;color:#52525a" class="mono">draw anywhere on this canvas</span>
+        </div>
+        <canvas id="cv" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- OCR -->
+  <section id="ocr" style="position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);background:#0b0b0e">
+    <div style="max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
+      <div data-reveal style="margin-bottom:30px;max-width:620px">
+        <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">Local OCR</p>
+        <h2 style="margin:10px 0 10px;font-size:34px;letter-spacing:-.02em;font-weight:650">Watch it lift text off the screen</h2>
+        <p style="margin:0;font-size:16px;line-height:1.55;color:#9a9aa2">Run the recognizer on this captured region. Everything happens on-device — hit <em style="color:#cfcfd6;font-style:normal">Extract text</em>.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;align-items:stretch">
+        <div data-reveal style="position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:#111116">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid rgba(255,255,255,.06)">
+            <span style="font-size:11.5px;color:#6f6f78" class="mono">captured.png · 640×360</span>
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--accent)"></span>
+          </div>
+          <div style="position:relative;padding:30px 26px;user-select:none;background:repeating-linear-gradient(135deg,#0e0e13 0 14px,#101016 14px 28px)">
+            <div class="mono" style="color:#d6d6dd;line-height:1.9;font-size:15px">
+              <div style="font-size:18px;color:#fff;font-weight:600;margin-bottom:6px">Captura — local OCR</div>
+              <div>Recognized fully on-device.</div>
+              <div>No network, no uploads.</div>
+              <div style="color:#9a9aa2">Your text never leaves the machine.</div>
+            </div>
+            <div id="ocr-scan" style="display:none;position:absolute;left:0;right:0;height:42px;top:-2%;background:linear-gradient(180deg,transparent,color-mix(in srgb, var(--accent) 30%, transparent),transparent);border-top:1.5px solid var(--accent);border-bottom:1.5px solid var(--accent);animation:scanMove 1.1s linear infinite"></div>
+          </div>
+        </div>
+        <div data-reveal style="display:flex;flex-direction:column;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#101013;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+            <span style="font-size:14px;font-weight:600">Extracted text</span>
+            <span id="ocr-count" style="font-size:11.5px;color:#6f6f78" class="mono">0 chars</span>
+          </div>
+          <div style="flex:1;padding:18px;min-height:150px">
+            <span id="ocr-idle" style="font-size:13.5px;color:#52525a" class="mono">Output appears here after extraction…</span>
+            <pre id="ocr-pre" style="margin:0;white-space:pre-wrap;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;line-height:1.85;color:#e6e6ec"></pre>
+          </div>
+          <div style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.06)">
+            <button id="ocr-run" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent)" data-hover="filter:brightness(1.08)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></svg>Extract text</button>
+            <span id="ocr-loading" style="display:none;align-items:center;gap:9px;padding:11px 18px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#cfcfd6;font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></span>Scanning region…</span>
+            <div id="ocr-actions" style="display:none;gap:9px">
+              <button id="ocr-copy" style="display:inline-flex;align-items:center;gap:7px;padding:11px 16px;border-radius:10px;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);background:color-mix(in srgb, var(--accent) 14%, transparent);color:#dfe3ff;font-size:14px;font-weight:600;cursor:pointer" data-hover="filter:brightness(1.1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span id="ocr-copy-label">Copy</span></button>
+              <button id="ocr-reset" style="display:inline-flex;align-items:center;gap:7px;padding:11px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#161619;color:#cfcfd6;font-size:14px;cursor:pointer" data-hover="color:#fff;border-color:rgba(255,255,255,.2)">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="download" style="position:relative;z-index:1;scroll-margin-top:84px">
+    <div style="max-width:1120px;margin:0 auto;padding:40px 24px 96px">
+      <div data-reveal style="position:relative;overflow:hidden;border-radius:20px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,#121219,#0b0b0f);padding:64px 32px;text-align:center">
+        <div style="position:absolute;top:-160px;left:50%;transform:translateX(-50%);width:700px;height:360px;background:radial-gradient(50% 60% at 50% 30%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%);filter:blur(30px);pointer-events:none"></div>
+        <div style="position:relative">
+          <h2 style="margin:0;font-size:40px;letter-spacing:-.025em;font-weight:680;background:linear-gradient(180deg,#fff,#c8c8d0);-webkit-background-clip:text;background-clip:text;color:transparent">Make your next screenshot smarter</h2>
+          <p style="margin:16px auto 0;font-size:17px;color:#9a9aa2;max-width:440px">Free and open source, for macOS, Windows, and Linux.</p>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px;margin-top:30px">
+            <a id="dl-cta" href="#top" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-size:15px;font-weight:600;color:#fff;padding:14px 24px;border-radius:12px;background:var(--accent);box-shadow:0 12px 34px color-mix(in srgb, var(--accent) 40%, transparent)" data-hover="transform:translateY(-1px);filter:brightness(1.07)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M5 21h14"></path></svg><span id="dl-cta-label">Download for macOS</span>
+            </a>
+            <a id="gh-cta" href="#top" style="text-decoration:none;font-size:14.5px;color:#b9b9c0;border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:2px" data-hover="color:#fff">View on GitHub →</a>
+          </div>
+          <p id="dl-note" style="margin:18px 0 0;font-size:12.5px;color:#6f6f78" class="mono"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.06);padding:36px 24px">
+    <div style="max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:8px;background:#141418;border:1px solid rgba(255,255,255,.08);color:var(--accent)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
+        </span>
+        <span style="font-size:14px;color:#9a9aa2">© 2026 catzuudon · <a href="https://github.com/catzuudon/captura/blob/main/LICENSE" style="color:#9a9aa2" data-hover="color:#f4f4f6">MIT&nbsp;License</a></span>
+      </div>
+      <div style="display:flex;gap:20px">
+        <a href="#features" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">Features</a>
+        <a href="#download" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">Download</a>
+        <a href="#ocr" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">OCR</a>
+        <a id="gh-footer" href="#" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* ===== Captura landing — set this to your GitHub "user/repo" ===== */
+var REPO = "catzuudon/captura";
+
+(function () {
+  "use strict";
+
+  /* hover styles (data-hover appended on enter, removed on leave) */
+  document.querySelectorAll("[data-hover]").forEach(function (el) {
+    var base = el.getAttribute("style") || "";
+    var hov = el.getAttribute("data-hover");
+    el.addEventListener("mouseenter", function () { el.setAttribute("style", base + ";" + hov); });
+    el.addEventListener("mouseleave", function () { el.setAttribute("style", base); });
+  });
+
+  /* scroll reveal */
+  var reveals = document.querySelectorAll("[data-reveal]");
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("shown"); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -7% 0px" });
+    reveals.forEach(function (el) { io.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add("shown"); });
+  }
+
+  /* ---- annotation playground ---- */
+  var cv = document.getElementById("cv");
+  var wrap = document.getElementById("cvwrap");
+  var hint = document.getElementById("pg-hint");
+  var tool = "pen", color = "#4f7dff";
+  var strokes = [], cur = null, drawing = false, W = 0, H = 0;
+  var ctx = cv.getContext("2d");
+
+  function sizeCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function pt(ev) { var r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  function drawStroke(s) {
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = 1;
+    if (s.tool === "pen" || s.tool === "marker") {
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.tool === "marker" ? 16 : 3;
+      ctx.globalAlpha = s.tool === "marker" ? 0.28 : 1;
+      ctx.beginPath();
+      s.pts.forEach(function (p, i) { i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+      ctx.stroke(); ctx.globalAlpha = 1;
+    } else if (s.tool === "rect") {
+      var a = s.pts[0], b = s.pts[1] || a;
+      ctx.strokeStyle = s.color; ctx.lineWidth = 3;
+      ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+    } else if (s.tool === "arrow") {
+      var a2 = s.pts[0], b2 = s.pts[1] || a2;
+      ctx.strokeStyle = s.color; ctx.fillStyle = s.color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+      var ang = Math.atan2(b2.y - a2.y, b2.x - a2.x), len = 14;
+      ctx.beginPath(); ctx.moveTo(b2.x, b2.y);
+      ctx.lineTo(b2.x - len * Math.cos(ang - 0.42), b2.y - len * Math.sin(ang - 0.42));
+      ctx.lineTo(b2.x - len * Math.cos(ang + 0.42), b2.y - len * Math.sin(ang + 0.42));
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function redraw(extra) {
+    ctx.clearRect(0, 0, W, H);
+    strokes.forEach(drawStroke);
+    if (extra) drawStroke(extra);
+  }
+  function updateHint() { hint.style.display = strokes.length ? "none" : "flex"; }
+
+  sizeCanvas();
+  window.addEventListener("resize", function () { sizeCanvas(); redraw(); });
+  cv.addEventListener("pointerdown", function (ev) {
+    ev.preventDefault();
+    try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+    drawing = true; cur = { tool: tool, color: color, pts: [pt(ev)] };
+  });
+  cv.addEventListener("pointermove", function (ev) {
+    if (!drawing || !cur) return;
+    var p = pt(ev);
+    if (cur.tool === "pen" || cur.tool === "marker") cur.pts.push(p); else cur.pts[1] = p;
+    redraw(cur);
+  });
+  function endStroke() {
+    if (!drawing) return;
+    drawing = false;
+    if (cur && cur.pts.length > 1) { strokes.push(cur); }
+    cur = null; redraw(); updateHint();
+  }
+  cv.addEventListener("pointerup", endStroke);
+  cv.addEventListener("pointercancel", endStroke);
+
+  document.querySelectorAll(".tool").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tool = btn.getAttribute("data-tool");
+      document.querySelectorAll(".tool").forEach(function (b) {
+        var on = b === btn;
+        b.style.borderColor = on ? "var(--accent)" : "rgba(255,255,255,.08)";
+        b.style.background = on ? "color-mix(in srgb, var(--accent) 18%, transparent)" : "#161619";
+        b.style.color = on ? "#fff" : "#cfcfd6";
+      });
+    });
+  });
+  document.querySelectorAll(".swatch").forEach(function (sw) {
+    sw.addEventListener("click", function () {
+      color = sw.getAttribute("data-color");
+      document.querySelectorAll(".swatch").forEach(function (s) {
+        var on = s === sw;
+        s.style.outline = on ? "2px solid " + s.getAttribute("data-color") : "none";
+        s.style.outlineOffset = on ? "3px" : "0";
+      });
+    });
+  });
+  document.getElementById("pg-undo").addEventListener("click", function () {
+    if (strokes.length) { strokes.pop(); redraw(); updateHint(); }
+  });
+  document.getElementById("pg-clear").addEventListener("click", function () {
+    strokes = []; redraw(); updateHint();
+  });
+  // default selections
+  document.querySelector('.tool[data-tool="pen"]').click();
+  document.querySelector('.swatch[data-color="#4f7dff"]').click();
+
+  /* ---- OCR demo ---- */
+  var OCR_FULL = "Captura — local OCR\nRecognized fully on-device.\nNo network, no uploads.\nYour text never leaves the machine.";
+  var ocrTimer = null;
+  var elScan = document.getElementById("ocr-scan");
+  var elIdle = document.getElementById("ocr-idle");
+  var elPre = document.getElementById("ocr-pre");
+  var elCount = document.getElementById("ocr-count");
+  var elRun = document.getElementById("ocr-run");
+  var elLoading = document.getElementById("ocr-loading");
+  var elActions = document.getElementById("ocr-actions");
+
+  function setCount() { elCount.textContent = elPre.textContent.length + " chars"; }
+  // Exactly one of {Extract} / {Scanning} / {Copy+Reset} is ever visible.
+  function setOcrState(state) {
+    elIdle.style.display = state === "idle" ? "inline" : "none";
+    elRun.style.display = state === "idle" ? "inline-flex" : "none";
+    elLoading.style.display = state === "running" ? "inline-flex" : "none";
+    elActions.style.display = state === "done" ? "flex" : "none";
+    elScan.style.display = state === "running" ? "block" : "none";
+  }
+  setOcrState("idle");
+  elRun.addEventListener("click", function () {
+    if (elRun.style.display === "none") return;  // already running/done
+    setOcrState("running");
+    elPre.textContent = ""; setCount();
+    setTimeout(function () {
+      var i = 0;
+      ocrTimer = setInterval(function () {
+        i += 1 + Math.round(Math.random() * 1.4);
+        if (i >= OCR_FULL.length) {
+          clearInterval(ocrTimer);
+          elPre.textContent = OCR_FULL; setCount();
+          setOcrState("done");
+          return;
+        }
+        elPre.textContent = OCR_FULL.slice(0, i); setCount();
+      }, 40);
+    }, 1100);
+  });
+  document.getElementById("ocr-reset").addEventListener("click", function () {
+    if (ocrTimer) clearInterval(ocrTimer);
+    elPre.textContent = ""; setCount();
+    setOcrState("idle");
+  });
+  document.getElementById("ocr-copy").addEventListener("click", function () {
+    try {
+      navigator.clipboard.writeText(OCR_FULL);
+      document.getElementById("ocr-copy-label").textContent = "Copied!";
+      setTimeout(function () { document.getElementById("ocr-copy-label").textContent = "Copy"; }, 1500);
+    } catch (e) {}
+  });
+
+  /* ---- downloads: OS detection + latest GitHub release ---- */
+  var PLATFORMS = [
+    { key: "macos", label: "macOS", match: /mac/i, suffix: "-macos.dmg" },
+    { key: "windows", label: "Windows", match: /win/i, suffix: "-windows-setup.exe" },
+    { key: "linux", label: "Linux", match: /linux|x11|ubuntu/i, suffix: "-linux-x86_64.tar.gz" }
+  ];
+  function here() {
+    var ua = navigator.userAgent;
+    for (var i = 0; i < PLATFORMS.length; i++) if (PLATFORMS[i].match.test(ua)) return PLATFORMS[i];
+    return PLATFORMS[0];
+  }
+  var releasesUrl = "https://github.com/" + REPO + "/releases/latest";
+  var repoUrl = "https://github.com/" + REPO;
+  ["gh-hero", "gh-cta", "gh-footer"].forEach(function (id) {
+    var a = document.getElementById(id); if (a) a.href = id === "gh-footer" ? repoUrl : releasesUrl;
+  });
+  var p = here();
+  ["dl-hero", "dl-cta"].forEach(function (id) { document.getElementById(id).href = releasesUrl; });
+  document.getElementById("dl-hero-label").textContent = "Download for " + p.label;
+  document.getElementById("dl-cta-label").textContent = "Download for " + p.label;
+
+  fetch("https://api.github.com/repos/" + REPO + "/releases/latest")
+    .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+    .then(function (data) {
+      var ver = data.tag_name || "";
+      document.getElementById("ver-pill").lastChild.textContent = ver + " · free & open source";
+      var note = document.getElementById("dl-note");
+      var assetFor = function (pl) {
+        return (data.assets || []).filter(function (a) { return a.name.indexOf(pl.suffix) >= 0; })[0];
+      };
+      var mine = assetFor(p);
+      if (mine) {
+        document.getElementById("dl-hero").href = mine.browser_download_url;
+        document.getElementById("dl-cta").href = mine.browser_download_url;
+      }
+      if (note) note.textContent = ver + (p.key === "macos" ? " · unsigned build — right-click → Open on first launch" : " · see the README for setup");
+    })
+    .catch(function () {
+      var note = document.getElementById("dl-note");
+      if (note) note.textContent = "All downloads on GitHub Releases →";
+    });
+})();
+</script>
+</body>
+</html>

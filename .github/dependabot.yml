@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Python runtime/build dependencies (Pillow, PyQt6, etc.) — flags vulnerable
+  # versions and opens update PRs.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  # Keep the GitHub Actions used by the CI/release workflows current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
