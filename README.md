@@ -56,13 +56,15 @@ Compare the output against the checksum on the release page.
 
 ## OCR engine
 
-OCR needs the Tesseract engine installed (the app finds it automatically; if missing, the result panel shows install guidance inline):
+The downloaded installers **bundle Tesseract** (English + orientation data), so OCR works out of the box — no separate install.
 
-- macOS: `brew install tesseract`
-- Windows: [UB-Mannheim installer](https://github.com/UB-Mannheim/tesseract/wiki) (default path is auto-detected)
-- Linux: `sudo apt install tesseract-ocr`
+For **other languages**, run Captura from source with a full Tesseract install and pick the language in Settings → OCR language. Install Tesseract and the language packs you want:
 
-More languages: `brew install tesseract-lang` (macOS) or install the matching language pack, then pick it in Settings → OCR language.
+- macOS: `brew install tesseract tesseract-lang`
+- Windows: [UB-Mannheim installer](https://github.com/UB-Mannheim/tesseract/wiki) (select extra languages during setup)
+- Linux: `sudo apt install tesseract-ocr tesseract-ocr-<lang>`
+
+When run from source, the app auto-detects a system Tesseract and shows inline guidance in the result panel if it's missing.
 
 ## Build from source
 

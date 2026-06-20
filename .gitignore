@@ -13,6 +13,9 @@ build/
 dist/
 *.spec
 
+# Tesseract vendored into release builds by CI (never committed)
+/tesseract/
+
 # OS / editor / local tooling
 .DS_Store
 *.swp

@@ -1,13 +1,17 @@
 name: Release
 
-# Builds installers for macOS, Windows, and Linux on GitHub's native runners
-# and publishes them to a GitHub Release whenever a version tag is pushed.
+# Builds self-contained installers for macOS, Windows, and Linux on GitHub's
+# native runners. Each bundles Tesseract so OCR works with no separate install.
 #
-#   git tag v1.0.0 && git push origin v1.0.0
+#   Tag push  -> builds AND publishes a GitHub Release:
+#       git tag v1.0.1 && git push origin v1.0.1
+#   Manual run (Actions tab -> Release -> Run workflow) -> builds the installers
+#       and uploads them as run artifacts WITHOUT publishing, for testing.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,14 +25,29 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-build.txt
+      - name: Vendor Tesseract
+        run: |
+          set -e
+          brew install tesseract dylibbundler
+          PREFIX="$(brew --prefix)"
+          mkdir -p tesseract/tessdata
+          cp "$PREFIX/bin/tesseract" tesseract/
+          cp "$PREFIX/share/tessdata/eng.traineddata" tesseract/tessdata/
+          [ -f "$PREFIX/share/tessdata/osd.traineddata" ] \
+            && cp "$PREFIX/share/tessdata/osd.traineddata" tesseract/tessdata/ || true
+          # Copy the binary's dynamic-library chain next to it and rewrite the
+          # load paths to @executable_path/libs so it runs off any machine.
+          dylibbundler -od -of -b -x tesseract/tesseract -d tesseract/libs/ -p @executable_path/libs/
       - name: Build .app and DMG
         run: |
           set -e
           VERSION="${GITHUB_REF_NAME#v}"
+          [ "$VERSION" = "main" ] && VERSION="0.0.0-test"
           pyinstaller --noconfirm --windowed --name Captura \
             --osx-bundle-identifier com.captura.app \
             --icon assets/icon.icns \
             --add-data "assets:assets" \
+            --add-data "tesseract:tesseract" \
             main.py
           plutil -replace LSUIElement -bool true dist/Captura.app/Contents/Info.plist
           plutil -replace CFBundleShortVersionString -string "$VERSION" dist/Captura.app/Contents/Info.plist
@@ -52,11 +71,25 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-build.txt
+      - name: Vendor Tesseract
+        shell: pwsh
+        run: |
+          choco install tesseract --no-progress -y
+          $src = "C:\Program Files\Tesseract-OCR"
+          New-Item -ItemType Directory -Force -Path tesseract\tessdata | Out-Null
+          Copy-Item "$src\*" tesseract\ -Recurse -Force
+          # Keep only English + orientation data to stay lightweight.
+          Remove-Item tesseract\tessdata\* -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item "$src\tessdata\eng.traineddata" tesseract\tessdata\
+          if (Test-Path "$src\tessdata\osd.traineddata") {
+            Copy-Item "$src\tessdata\osd.traineddata" tesseract\tessdata\
+          }
       - name: Build .exe
         run: >
           pyinstaller --noconfirm --windowed --name Captura
           --icon assets/icon.ico
           --add-data "assets;assets"
+          --add-data "tesseract;tesseract"
           main.py
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -64,6 +97,7 @@ jobs:
         shell: pwsh
         run: |
           $v = $env:GITHUB_REF_NAME -replace '^v',''
+          if ($v -eq 'main') { $v = '0.0.0-test' }
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$v scripts\captura.iss
       - uses: actions/upload-artifact@v4
         with:
@@ -79,13 +113,34 @@ jobs:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0 libegl1
       - run: pip install -r requirements-build.txt
+      - name: Vendor Tesseract
+        run: |
+          set -e
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-osd patchelf
+          mkdir -p tesseract/tessdata tesseract/libs
+          cp "$(command -v tesseract)" tesseract/
+          # Bundle non-core shared libs beside the binary; let the system
+          # provide glibc/loader. Rewrite rpaths to $ORIGIN so it self-resolves.
+          ldd "$(command -v tesseract)" | awk '/=> \// {print $3}' | while read -r lib; do
+            case "$lib" in
+              */libc.so*|*/libm.so*|*/libpthread.so*|*/libdl.so*|*/librt.so*|*/ld-linux*) ;;
+              *) cp -Ln "$lib" tesseract/libs/ 2>/dev/null || true ;;
+            esac
+          done
+          patchelf --set-rpath '$ORIGIN/libs' tesseract/tesseract
+          for f in tesseract/libs/*; do patchelf --set-rpath '$ORIGIN' "$f" || true; done
+          cp "$(dpkg -L tesseract-ocr-eng | grep '/eng.traineddata$' | head -1)" tesseract/tessdata/
+          OSD="$(dpkg -L tesseract-ocr-osd 2>/dev/null | grep '/osd.traineddata$' | head -1)"
+          [ -n "$OSD" ] && cp "$OSD" tesseract/tessdata/ || true
       - name: Build tarball
         run: |
           set -e
           VERSION="${GITHUB_REF_NAME#v}"
+          [ "$VERSION" = "main" ] && VERSION="0.0.0-test"
           pyinstaller --noconfirm --windowed --name Captura \
             --icon assets/icon.ico \
             --add-data "assets:assets" \
+            --add-data "tesseract:tesseract" \
             main.py
           tar -czf "dist/Captura-$VERSION-linux-x86_64.tar.gz" -C dist Captura
       - uses: actions/upload-artifact@v4
@@ -96,6 +151,9 @@ jobs:
   release:
     needs: [macos, windows, linux]
     runs-on: ubuntu-latest
+    # Publish a GitHub Release only for tag pushes; manual runs just leave the
+    # installers as downloadable run artifacts for testing.
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -108,8 +166,9 @@ jobs:
           body: |
             Captura ${{ github.ref_name }}
 
-            Download for your platform below. See the README for install steps and
-            the one-time macOS permission grants (Screen Recording + Input Monitoring).
+            Download for your platform below. OCR works out of the box — Tesseract
+            is bundled, no separate install needed. See the README for the one-time
+            macOS permission grants (Screen Recording + Input Monitoring).
 
             **Unsigned builds**: macOS/Windows will warn on first launch — this is
             expected for an open-source app without a paid signing certificate. See

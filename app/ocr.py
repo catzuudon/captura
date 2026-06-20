@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import os
 import re
 import shutil
 from pathlib import Path
@@ -11,6 +12,7 @@ from PIL import Image
 from PyQt6.QtCore import QBuffer, QObject, QRunnable, QThreadPool, pyqtSignal
 from PyQt6.QtGui import QImage
 
+from app import paths
 from app import platform as platform_setup
 
 
@@ -25,6 +27,11 @@ _SAFE_LANG = re.compile(r"^[A-Za-z0-9_+/-]{1,64}$")
 
 
 def find_tesseract() -> str | None:
+    # Prefer the copy vendored into the app so a packaged build needs no
+    # separate install; fall back to a system Tesseract when run from source.
+    bundled = paths.bundled_tesseract()
+    if bundled is not None:
+        return str(bundled)
     found = shutil.which("tesseract")
     if found:
         return found
@@ -51,6 +58,11 @@ def extract_text(image: QImage, lang: str = "eng") -> str:
     if not _SAFE_LANG.match(lang):
         lang = "eng"
     pytesseract.pytesseract.tesseract_cmd = cmd
+    # A vendored binary's compiled-in tessdata path doesn't exist on the user's
+    # machine, so point it at the language data shipped alongside it.
+    tessdata = paths.bundled_tessdata()
+    if tessdata is not None:
+        os.environ["TESSDATA_PREFIX"] = str(tessdata)
     return pytesseract.image_to_string(_qimage_to_pil(image), lang=lang).strip()
 
 
