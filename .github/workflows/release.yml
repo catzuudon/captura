@@ -29,7 +29,7 @@ jobs:
             --osx-bundle-identifier com.captura.app \
             --icon assets/icon.icns \
             --add-data "assets:assets" \
-            --specpath build main.py
+            main.py
           plutil -replace LSUIElement -bool true dist/Captura.app/Contents/Info.plist
           plutil -replace CFBundleShortVersionString -string "$VERSION" dist/Captura.app/Contents/Info.plist
           plutil -replace CFBundleVersion -string "$VERSION" dist/Captura.app/Contents/Info.plist
@@ -57,7 +57,7 @@ jobs:
           pyinstaller --noconfirm --windowed --name Captura
           --icon assets/icon.ico
           --add-data "assets;assets"
-          --specpath build main.py
+          main.py
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
       - name: Build installer
@@ -86,7 +86,7 @@ jobs:
           pyinstaller --noconfirm --windowed --name Captura \
             --icon assets/icon.ico \
             --add-data "assets:assets" \
-            --specpath build main.py
+            main.py
           tar -czf "dist/Captura-$VERSION-linux-x86_64.tar.gz" -C dist Captura
       - uses: actions/upload-artifact@v4
         with:

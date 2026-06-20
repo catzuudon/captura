@@ -19,7 +19,34 @@ jobs:
       - name: System dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-cursor0 libegl1 tesseract-ocr xvfb
+          sudo apt-get install -y libxcb-cursor0 libegl1
       - run: pip install -r requirements.txt
-      - name: Self-test (headless via xvfb)
-        run: xvfb-run -a python selftest.py
+      - name: Byte-compile (syntax check)
+        run: python -m compileall app main.py selftest.py
+      # The full selftest drives real screen capture + synthetic input, which a
+      # headless runner can't provide. CI instead loads every module under Qt's
+      # offscreen platform — this catches import/syntax/init regressions without
+      # a display. The end-to-end selftest runs locally on macOS/Windows.
+      - name: Import smoke test (headless)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python - <<'PY'
+          import importlib
+          from app import platform as platform_setup
+          platform_setup.setup()  # must run before QApplication exists
+          from PyQt6.QtWidgets import QApplication
+          app = QApplication([])
+          modules = [
+              "app.theme", "app.hotkey", "app.capture", "app.overlay",
+              "app.ocr", "app.tray", "app.settings",
+              "app.editor.editor", "app.editor.toolbar", "app.editor.tools",
+              "app.editor.canvas", "app.editor.ocr_panel",
+          ]
+          for name in modules:
+              importlib.import_module(name)
+              print("imported", name)
+          from app.settings import Settings
+          assert Settings.load().hotkey, "settings failed to load a default hotkey"
+          print("smoke test OK")
+          PY
