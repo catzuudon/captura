@@ -3,6 +3,25 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.0.2] — 2026-06-21
+
+### Added
+- **Optional update check** (Settings → *Check for updates*, off by default).
+  When enabled, Captura anonymously checks GitHub's releases API on launch and
+  daily, surfacing a quiet "Update available" link in the tray menu. It sends
+  nothing about you and never downloads or installs anything.
+
+## [1.0.1] — 2026-06-20
+
+### Changed
+- **Tesseract is now bundled** in the macOS, Windows, and Linux installers, so
+  OCR works out of the box with no separate install. Running from source still
+  uses a system Tesseract.
+
+### Fixed
+- CI now runs a headless-safe smoke test instead of the GUI self-test, and the
+  release builds bundle assets correctly (the prior `--specpath` broke them).
+
 ## [1.0.0] — 2026-06-15
 
 First public release.

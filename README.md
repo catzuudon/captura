@@ -11,7 +11,7 @@ Think Lightshot, but cleaner, faster, and smarter.
 - **Annotation tools** — pen, line, arrow, rectangle, ellipse, inline text (scroll to resize while typing), highlighter; 8-color palette + custom, three stroke widths, full undo/redo, Delete removes selected marks
 - **OCR** — one click extracts text from the capture (Tesseract, fully local); result appears inline with a copy button
 - **Fast output** — Enter or Ctrl+C copies the flattened image and closes everything; Save writes PNG/JPG; Escape cancels without a trace
-- **Settings** — compact panel from the tray: rebind the hotkey, default save folder, image format, OCR language, launch at login
+- **Settings** — compact panel from the tray: rebind the hotkey, default save folder, image format, OCR language, launch at login, optional update check
 
 Default hotkeys: **PrintScreen** on Windows (Ctrl+PrintScreen if Snipping Tool owns the key — detected automatically), **Cmd+Shift+7** on macOS, **PrintScreen** on Linux. Rebind in Settings.
 
@@ -114,11 +114,13 @@ scripts/           build + icon generation
 
 ## Privacy & security
 
-Captura runs entirely on your machine. It has **no network code** — nothing is uploaded, phoned home, or tracked. Captures and OCR text go only to your clipboard or a file you choose.
+Captura runs entirely on your machine. **By default it makes no network connections** — nothing is uploaded, phoned home, or tracked. Captures and OCR text go only to your clipboard or a file you choose.
 
-- OCR is local (Tesseract); images never leave the device.
+- OCR is local (Tesseract, bundled); images never leave the device.
 - Settings live in your user config directory and are type-validated on load.
 - No shell execution, no `eval`, no deserialization of untrusted data.
+
+The **only** optional network use is an **update check, off by default** (Settings → *Check for updates*). When you turn it on, Captura makes one anonymous request to GitHub's public releases API to compare versions — it sends nothing about you or your machine, stores nothing, and never downloads or installs anything; a newer version just shows a link in the tray menu.
 
 Found a security issue? Please report it privately (see [SECURITY.md](SECURITY.md)) rather than opening a public issue.
 

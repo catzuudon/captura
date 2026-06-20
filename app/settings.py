@@ -61,6 +61,7 @@ class Settings:
     image_format: str = "png"
     ocr_language: str = "eng"
     launch_on_startup: bool = False
+    check_for_updates: bool = False
 
     @classmethod
     def load(cls) -> "Settings":
@@ -206,6 +207,17 @@ class SettingsPanel(QWidget):
         self._startup_box.setChecked(settings.launch_on_startup)
         self._startup_box.toggled.connect(self._set_startup)
         outer.addWidget(self._startup_box)
+
+        self._updates_box = QCheckBox("Check for updates")
+        self._updates_box.setChecked(settings.check_for_updates)
+        self._updates_box.setToolTip(
+            "Off by default. When on, Captura anonymously checks GitHub for a "
+            "newer release on launch — it sends nothing about you and never "
+            "installs anything, just shows a link in the tray menu."
+        )
+        self._updates_box.toggled.connect(self._set_check_updates)
+        outer.addSpacing(10)
+        outer.addWidget(self._updates_box)
 
         self._status = QLabel("")
         self._status.setObjectName("status")
@@ -360,4 +372,8 @@ class SettingsPanel(QWidget):
             self._show_status(f"Could not update login item: {exc}")
             return
         self._settings.launch_on_startup = enabled
+        self._save()
+
+    def _set_check_updates(self, enabled: bool) -> None:
+        self._settings.check_for_updates = enabled
         self._save()
