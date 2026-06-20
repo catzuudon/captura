@@ -19,19 +19,20 @@ jobs:
       - name: System dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-cursor0 libegl1
+          sudo apt-get install -y libxcb-cursor0 libegl1 xvfb
       - run: pip install -r requirements.txt
       - name: Byte-compile (syntax check)
         run: python -m compileall app main.py selftest.py
       # The full selftest drives real screen capture + synthetic input, which a
       # headless runner can't provide. CI instead loads every module under Qt's
       # offscreen platform — this catches import/syntax/init regressions without
-      # a display. The end-to-end selftest runs locally on macOS/Windows.
+      # a display. pynput still needs an X connection at import time, so the
+      # smoke test runs under xvfb. The end-to-end selftest runs locally.
       - name: Import smoke test (headless)
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          python - <<'PY'
+          xvfb-run -a python - <<'PY'
           import importlib
           from app import platform as platform_setup
           platform_setup.setup()  # must run before QApplication exists
