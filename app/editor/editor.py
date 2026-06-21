@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from PyQt6.QtCore import QEvent, QPoint, QPointF, QRect, QRectF, Qt, QTimer
+from PyQt6.QtCore import QEvent, QPoint, QPointF, QRect, QRectF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
     QCursor,
@@ -60,6 +60,11 @@ class EditorWindow(QGraphicsView):
     apply window resizes during a live mouse drag, so frame resize/move are
     pure repaints of ``scene.region``.
     """
+
+    # Fires synchronously from closeEvent so the dim overlays are torn down at
+    # once. Relying on ``destroyed`` instead lags a cycle on Windows, where the
+    # WA_DeleteOnClose deferred-delete isn't processed until the next event.
+    closing = pyqtSignal()
 
     def __init__(
         self,
@@ -462,6 +467,7 @@ class EditorWindow(QGraphicsView):
 
     def closeEvent(self, event) -> None:
         try:
+            self.closing.emit()  # tear down the dim overlays immediately
             self._toolbar.close()
             self._ocr_panel.close()
         except Exception:

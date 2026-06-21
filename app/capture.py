@@ -120,6 +120,9 @@ class CaptureController(QObject):
             # frozen screen so the frame can be resized to reveal more of it.
             editor = EditorWindow(overlay.full_image, rect, overlay.screen_ref, self._settings)
             self._editors.append(editor)
+            # Close the dim overlays the moment the editor closes (synchronous),
+            # not when it's later destroyed — that lags a cycle on Windows.
+            editor.closing.connect(self._close_overlays)
             editor.destroyed.connect(lambda *_, e=editor: self._end_session(e))
             # The screen stays dimmed behind the editor until the session ends.
             for held in self._overlays:

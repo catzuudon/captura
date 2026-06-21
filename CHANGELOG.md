@@ -3,6 +3,17 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.0.3] — 2026-06-21
+
+### Fixed
+- Windows: the dim overlay no longer lingers after copying a capture. It was
+  torn down on the editor's deferred destruction, which Windows processes a
+  cycle late; it now closes the instant the editor closes.
+
+### Docs
+- Clearer macOS first-launch steps (Sequoia "Open Anyway" flow + a quarantine-
+  clearing command) since the old right-click-Open path no longer applies.
+
 ## [1.0.2] — 2026-06-21
 
 ### Added

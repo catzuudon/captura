@@ -37,7 +37,16 @@ Captura uses up to three macOS permissions (System Settings → Privacy & Securi
 
 The two required permissions are prompted automatically. **Accessibility is optional** — without it the hotkey still works, it just also passes through to whatever app is focused. macOS never prompts for Accessibility on its own, so Captura offers a **tray → Permissions…** item that requests all three and opens the right Settings panes for any that are missing. After granting a permission, you may need to relaunch (macOS applies some grants only on next launch).
 
-> First launch shows "Captura can't be opened because Apple cannot check it for malicious software." This is expected — the app is open-source and not signed with a paid Apple certificate. Right-click the app → **Open** → **Open**, or allow it under System Settings → Privacy & Security → **Open Anyway**.
+> **First launch is blocked by macOS.** You'll see *"Apple could not verify 'Captura' is free of malware…"* — expected for an open-source app not signed with a paid Apple certificate. To allow it:
+>
+> 1. Double-click Captura once (the block appears) and click **Done**.
+> 2. Open **System Settings → Privacy & Security**, scroll to the **Security** section. You'll see *"Captura was blocked…"* with an **Open Anyway** button — click it, then confirm with **Open Anyway** and your password/Touch ID.
+>
+> (On older macOS, right-click the app → **Open** → **Open** also works.) If macOS still refuses, run this once in Terminal to clear the download quarantine:
+>
+> ```sh
+> xattr -dr com.apple.quarantine /Applications/Captura.app
+> ```
 
 ### Windows
 
