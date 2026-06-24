@@ -58,7 +58,7 @@ jobs:
           ln -s /Applications "$STAGING/Applications"
           hdiutil create -volname Captura -srcfolder "$STAGING" -ov -format UDZO \
             "dist/Captura-$VERSION-macos.dmg"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/*.dmg
@@ -99,7 +99,7 @@ jobs:
           $v = $env:GITHUB_REF_NAME -replace '^v',''
           if ($v -eq 'main') { $v = '0.0.0-test' }
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$v scripts\captura.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: dist/*setup.exe
@@ -143,7 +143,7 @@ jobs:
             --add-data "tesseract:tesseract" \
             main.py
           tar -czf "dist/Captura-$VERSION-linux-x86_64.tar.gz" -C dist Captura
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: dist/*.tar.gz
