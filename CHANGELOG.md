@@ -5,6 +5,11 @@ All notable changes to Captura are documented here. This project follows
 
 ## [1.0.3] — 2026-06-21
 
+### Changed
+- macOS menu-bar icon is now a monochrome template that the system tints to
+  match the bar (instead of the blue glyph, which stood out). Only the macOS
+  tray changed — the app icon, Windows tray, and website are unchanged.
+
 ### Fixed
 - Windows: the dim overlay no longer lingers after copying a capture. It was
   torn down on the editor's deferred destruction, which Windows processes a

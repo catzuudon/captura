@@ -12,6 +12,18 @@ from app.paths import ASSETS_DIR
 _ICON_PATH = ASSETS_DIR / "icon.svg"
 
 
+def _tray_icon() -> QIcon:
+    # macOS menu-bar icons are expected to be monochrome template images that
+    # the system tints to match the bar — the blue glyph looks out of place
+    # there. Use a white template glyph and mark it as a mask so macOS renders
+    # it black/white automatically. Every other platform keeps the blue glyph.
+    if sys.platform == "darwin":
+        icon = QIcon(str(ASSETS_DIR / "icon-tray-macos.svg"))
+        icon.setIsMask(True)
+        return icon
+    return QIcon(str(_ICON_PATH))
+
+
 class TrayIcon(QSystemTrayIcon):
     capture_requested = pyqtSignal()
     settings_requested = pyqtSignal()
@@ -20,7 +32,7 @@ class TrayIcon(QSystemTrayIcon):
     quit_requested = pyqtSignal()
 
     def __init__(self) -> None:
-        super().__init__(QIcon(str(_ICON_PATH)))
+        super().__init__(_tray_icon())
         self.setToolTip("Captura")
         menu = QMenu()
         menu.addAction("Capture", self.capture_requested.emit)
