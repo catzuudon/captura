@@ -292,6 +292,35 @@
             <a id="gh-cta" href="#top" style="text-decoration:none;font-size:14.5px;color:#b9b9c0;border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:2px" data-hover="color:#fff">View on GitHub →</a>
           </div>
           <p id="dl-note" style="margin:18px 0 0;font-size:12.5px;color:#6f6f78" class="mono"></p>
+
+          <!-- First-launch help: unsigned app, so macOS/Windows warn once -->
+          <div style="max-width:760px;margin:40px auto 0;text-align:left;display:flex;flex-wrap:wrap;gap:16px">
+            <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.02);padding:20px 22px">
+              <div style="display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:#f4f4f6">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"></path><path d="M8.5 16.4a5 5 0 0 1 7 0"></path><path d="M5 12.86a10 10 0 0 1 14 0"></path></svg>
+                Opening on macOS
+              </div>
+              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">macOS blocks unsigned apps once. After downloading:</p>
+              <ol style="margin:10px 0 0;padding-left:18px;font-size:13px;color:#9a9aa2;line-height:1.7">
+                <li>Open Captura, then click <strong style="color:#cdcdd4">Done</strong> on the warning.</li>
+                <li>Go to <strong style="color:#cdcdd4">System Settings → Privacy &amp; Security</strong>, scroll to <strong style="color:#cdcdd4">Security</strong>, and click <strong style="color:#cdcdd4">Open Anyway</strong>.</li>
+              </ol>
+              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">Or run this once in Terminal:</p>
+              <code class="mono" style="display:block;margin-top:7px;padding:9px 11px;border-radius:8px;background:#0c0c11;border:1px solid rgba(255,255,255,.08);font-size:12px;color:#b9b9c0;word-break:break-all">xattr -dr com.apple.quarantine /Applications/Captura.app</code>
+            </div>
+            <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.02);padding:20px 22px">
+              <div style="display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:#f4f4f6">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="5" rx="2"></rect><path d="M3 10h18"></path></svg>
+                Opening on Windows
+              </div>
+              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">SmartScreen warns once for unsigned installers:</p>
+              <ol style="margin:10px 0 0;padding-left:18px;font-size:13px;color:#9a9aa2;line-height:1.7">
+                <li>Run the installer. If you see <em style="color:#cdcdd4">"Windows protected your PC"</em>, click <strong style="color:#cdcdd4">More info</strong>.</li>
+                <li>Click <strong style="color:#cdcdd4">Run anyway</strong> to continue.</li>
+              </ol>
+              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">These warnings appear because the app is open-source and unsigned — not because anything's wrong. Every download lists a SHA-256 checksum you can verify.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -531,7 +560,7 @@ var REPO = "catzuudon/captura";
         document.getElementById("dl-hero").href = mine.browser_download_url;
         document.getElementById("dl-cta").href = mine.browser_download_url;
       }
-      if (note) note.textContent = ver + (p.key === "macos" ? " · unsigned build — right-click → Open on first launch" : " · see the README for setup");
+      if (note) note.textContent = ver + (p.key === "linux" ? " · extract and run ./Captura/Captura" : " · unsigned build — see “Opening on " + p.label + "” below");
     })
     .catch(function () {
       var note = document.getElementById("dl-note");
