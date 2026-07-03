@@ -3,6 +3,6 @@
 PyQt6==6.11.0
 mss==10.2.0
 pynput==1.8.2
-Pillow==12.2.0
+Pillow==12.3.0
 pytesseract==0.3.13
 platformdirs==4.10.0
