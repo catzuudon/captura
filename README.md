@@ -1,5 +1,10 @@
 # Captura
 
+[![Latest release](https://img.shields.io/github/v/release/catzuudon/captura?label=release&color=4f7dff)](https://github.com/catzuudon/captura/releases/latest)
+[![Total downloads](https://img.shields.io/github/downloads/catzuudon/captura/total?label=downloads&color=4f7dff)](https://github.com/catzuudon/captura/releases)
+[![Latest downloads](https://img.shields.io/github/downloads/catzuudon/captura/latest/total?label=downloads%40latest&color=4f7dff)](https://github.com/catzuudon/captura/releases/latest)
+[![License](https://img.shields.io/github/license/catzuudon/captura?color=4f7dff)](LICENSE)
+
 A minimalist screenshot utility that gets out of your way. Press a key, select a region, annotate if you need to, and copy — no popups, no confirmations, no noise. Built-in OCR pulls text from anything on screen. Runs quietly in your tray.
 
 Think Lightshot, but cleaner, faster, and smarter.
@@ -122,6 +127,26 @@ app/
 assets/            icons
 scripts/           build + icon generation
 ```
+
+## Download statistics
+
+The badges above are live counts from GitHub. Because GitHub reports only a
+*running total* per asset and keeps no history, a daily workflow
+(`.github/workflows/stats.yml`) snapshots the numbers into
+[`stats/downloads.csv`](stats/downloads.csv) — one row per asset per day, plus
+a rolled-up [`stats/summary.json`](stats/summary.json). Difference two dated
+rows to get a rate; the raw column is cumulative.
+
+Run it on demand with `python3 scripts/collect_stats.py`.
+
+What this can and can't tell you:
+
+- ✅ Downloads per release and per platform, and how those totals move over time.
+- ❌ **Whether anyone actually updated.** Captura has no telemetry and reports
+  nothing back — deliberately, since it promises no network connections by
+  default. Rising downloads on a new version alongside a flat older one is the
+  closest honest proxy for adoption.
+- ❌ Who or where. No identities, no geography, no referrers.
 
 ## Privacy & security
 

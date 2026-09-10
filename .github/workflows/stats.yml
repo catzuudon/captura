@@ -1,0 +1,51 @@
+name: Download stats
+
+# GitHub reports only a running total per release asset and keeps no history,
+# so a trend can never be reconstructed after the fact — it has to be recorded
+# as it goes. This snapshots the counts daily into stats/downloads.csv, which
+# turns "downloads so far" into an answerable "downloads this week".
+#
+# Manual run (Actions tab -> Download stats -> Run workflow) records immediately.
+
+on:
+  schedule:
+    - cron: "17 4 * * *" # daily, 04:17 UTC — off the hour to dodge peak queueing
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never let two snapshots race for the same commit.
+concurrency:
+  group: download-stats
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Collect release download counts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/collect_stats.py --repo "${{ github.repository }}"
+
+      - name: Commit the snapshot
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/
+          # Counts often don't move day to day; an empty commit would be noise.
+          if git diff --cached --quiet; then
+            echo "No change in download counts — nothing to commit."
+            exit 0
+          fi
+          git commit -m "stats: download snapshot $(date -u +%F)"
+          # The scheduled job can race a push to main; rebase rather than fail.
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main

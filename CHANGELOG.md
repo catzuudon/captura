@@ -3,7 +3,7 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
-## [Unreleased]
+## [1.1.1] — 2026-09-10
 
 ### Security
 - **Pillow 12.2.0 → 12.3.0**, clearing all 13 open Dependabot alerts (10 high,
@@ -13,6 +13,15 @@ All notable changes to Captura are documented here. This project follows
   codepaths (PDF, JPEG2000, TGA, EPS, BDF/PCF fonts, GD, ImageCms) are never
   reached and the input is never attacker-supplied. Bumped as hygiene, not as
   an emergency.
+
+### Added
+- **Download statistics.** `scripts/collect_stats.py` plus a daily workflow
+  snapshot per-release, per-platform download counts into `stats/downloads.csv`
+  with a rolled-up `stats/summary.json`. GitHub reports only a running total and
+  keeps no history, so a trend can't be reconstructed after the fact — it has to
+  be recorded as it goes. README gained release/downloads/license badges.
+  Captura still reports nothing about itself: there is no telemetry, so this
+  measures downloads, never installs or upgrades.
 
 ### Changed
 - platformdirs 4.10.0 → 4.11.7 (config path verified unchanged), pyinstaller
