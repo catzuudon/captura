@@ -20,8 +20,8 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -r requirements-build.txt
@@ -58,7 +58,7 @@ jobs:
           ln -s /Applications "$STAGING/Applications"
           hdiutil create -volname Captura -srcfolder "$STAGING" -ov -format UDZO \
             "dist/Captura-$VERSION-macos.dmg"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/*.dmg
@@ -66,8 +66,8 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -r requirements-build.txt
@@ -99,7 +99,7 @@ jobs:
           $v = $env:GITHUB_REF_NAME -replace '^v',''
           if ($v -eq 'main') { $v = '0.0.0-test' }
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$v scripts\captura.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: dist/*setup.exe
@@ -107,8 +107,8 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0 libegl1
@@ -143,7 +143,7 @@ jobs:
             --add-data "tesseract:tesseract" \
             main.py
           tar -czf "dist/Captura-$VERSION-linux-x86_64.tar.gz" -C dist Captura
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: dist/*.tar.gz
@@ -155,11 +155,11 @@ jobs:
     # installers as downloadable run artifacts for testing.
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*
           generate_release_notes: true

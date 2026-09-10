@@ -3,6 +3,28 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [Unreleased]
+
+### Security
+- **Pillow 12.2.0 → 12.3.0**, clearing all 13 open Dependabot alerts (10 high,
+  3 moderate) — every one of them was Pillow. Worth stating the real exposure:
+  Captura's only Pillow entry point is `Image.open()` on a PNG that Qt itself
+  just serialized from a screen capture (`app/ocr.py`), so the affected
+  codepaths (PDF, JPEG2000, TGA, EPS, BDF/PCF fonts, GD, ImageCms) are never
+  reached and the input is never attacker-supplied. Bumped as hygiene, not as
+  an emergency.
+
+### Changed
+- platformdirs 4.10.0 → 4.11.7 (config path verified unchanged), pyinstaller
+  6.20.0 → 6.22.2.
+- GitHub Actions brought current: checkout v4→v7, setup-python v5→v7,
+  upload-artifact v4→v7 with download-artifact v4→v8 (the pairing its own docs
+  specify), codeql-action v3→v4, action-gh-release v2→v3. upload-artifact v4
+  was heading for deprecation, which would eventually have broken releases.
+- `pynput` stays pinned at 1.8.2 and is now commented as such: `app/hotkey.py`
+  patches its private internals (macOS TIS neutralization, event-tap handle
+  capture), so a bump needs those re-verified rather than assumed.
+
 ## [1.1.0] — 2026-09-10
 
 ### Added
