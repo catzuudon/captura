@@ -1,9 +1,10 @@
 {
   "repo": "catzuudon/captura",
   "generated": "2026-09-10",
-  "total_downloads": 10,
+  "total_downloads": 11,
   "by_release": {
-    "v1.1.0": 1,
+    "v1.1.1": 0,
+    "v1.1.0": 2,
     "v1.0.3": 4,
     "v1.0.2": 3,
     "v1.0.1": 0,
@@ -11,7 +12,7 @@
   },
   "by_platform": {
     "linux": 0,
-    "macos": 4,
+    "macos": 5,
     "windows": 6
   },
   "note": "Counts are cumulative totals reported by GitHub, not per-day downloads. Difference two dated rows in downloads.csv for a rate."
