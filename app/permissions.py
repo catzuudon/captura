@@ -8,6 +8,7 @@ triggers the native prompt.
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -109,6 +110,12 @@ class PermissionsPanel(QWidget):
             label.style().unpolish(label)
             label.style().polish(label)
             button.setVisible(not granted)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # Esc closes the window
+        if event.key() == Qt.Key.Key_Escape:
+            self.close()
+            return
+        super().keyPressEvent(event)
 
     def showEvent(self, event) -> None:  # re-check each time it's shown
         self._refresh()

@@ -11,9 +11,11 @@ Think Lightshot, but cleaner, faster, and smarter.
 - **Annotation tools** — pen, line, arrow, rectangle, ellipse, inline text (scroll to resize while typing), highlighter; 8-color palette + custom, three stroke widths, full undo/redo, Delete removes selected marks
 - **OCR** — one click extracts text from the capture (Tesseract, fully local); result appears inline with a copy button
 - **Fast output** — Enter or Ctrl+C copies the flattened image and closes everything; Save writes PNG/JPG; Escape cancels without a trace
-- **Settings** — compact panel from the tray: rebind the hotkey, default save folder, image format, OCR language, launch at login, optional update check
+- **Settings** — compact panel from the tray: rebind the hotkey, default save folder, image format, OCR language, launch at login, optional update check. Every change applies and saves immediately; **Esc** closes the panel (while recording a shortcut, the first Esc cancels the recording instead)
 
 Default hotkeys: **PrintScreen** on Windows (Ctrl+PrintScreen if Snipping Tool owns the key — detected automatically), **Cmd+Shift+7** on macOS, **PrintScreen** on Linux. Rebind in Settings.
+
+On macOS the hotkey listener is **self-healing**: macOS silently disables an app's event tap across sleep/wake and won't create one at all if the app launches at login before the permission system is ready. Captura watches its own tap and re-arms or rebuilds it, so the hotkey keeps working after sleep or a cold boot without a relaunch.
 
 ## Download
 
@@ -57,8 +59,8 @@ The installer and app are unsigned, so SmartScreen may show "Windows protected y
 Each release lists a SHA-256 checksum. To confirm a download wasn't tampered with:
 
 ```sh
-shasum -a 256 Captura-1.0.0-macos.dmg        # macOS/Linux
-certutil -hashfile Captura-1.0.0-windows-setup.exe SHA256   # Windows
+shasum -a 256 Captura-1.1.0-macos.dmg        # macOS/Linux
+certutil -hashfile Captura-1.1.0-windows-setup.exe SHA256   # Windows
 ```
 
 Compare the output against the checksum on the release page.

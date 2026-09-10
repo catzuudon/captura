@@ -3,6 +3,30 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.1.0] — 2026-09-10
+
+### Added
+- **Esc closes the Settings and Permissions windows.** While recording a new
+  shortcut, the first Esc still cancels the recording; a second one closes the
+  window.
+
+### Fixed
+- **macOS: the hotkey no longer goes dead after sleep/wake or a cold boot.**
+  macOS disables an app's event tap behind its back (across sleep/wake and
+  after a tap timeout) and refuses to create one at all when the app launches
+  at login before the permission system is ready — in every case pynput still
+  reported a healthy listener, so the hotkey silently stopped working until
+  Captura was relaunched. A watchdog now checks the tap every 5s, re-arms it
+  when macOS switches it off, and rebuilds the listener after a wake or when
+  the tap was never created (retrying with backoff while permissions settle).
+
+### Docs
+- Website: added a **macOS permissions** card to the first-launch help, listing
+  which of the three permissions are required and which is optional — the
+  previous cards only covered getting past Gatekeeper, not what to grant after.
+- README: documented the self-healing hotkey listener and the Esc shortcut, and
+  refreshed the checksum example (it still named 1.0.0).
+
 ## [1.0.3] — 2026-06-21
 
 ### Changed

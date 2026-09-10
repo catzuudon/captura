@@ -320,6 +320,26 @@ def run_tests(app: QApplication, controller: CaptureController) -> None:
     passes = hk._darwin_intercept(0, "EVT") == "EVT"
     check("hotkey completing key suppressed, others pass through", suppressed and passes)
 
+    # macOS switches event taps off behind the app's back (sleep/wake, tap
+    # timeouts) and tells the tap callback by sending it a disabled-tap event
+    # type. That must re-arm the tap, not be mistaken for a completing key.
+    if sys.platform == "darwin":
+        from app import hotkey as hotkey_mod
+
+        re_enabled = []
+        saved_enable = hotkey_mod._CGEventTapEnable
+        hotkey_mod._CGEventTapEnable = lambda tap, on: re_enabled.append(on)
+        hk._tap = object()
+        hk._fired = True
+        passed_through = hk._darwin_intercept(0xFFFFFFFE, "EVT") == "EVT"
+        hotkey_mod._CGEventTapEnable = saved_enable
+        check(
+            "disabled tap is re-enabled and its event passes through",
+            passed_through and re_enabled == [True] and hk._fired,
+        )
+        hk._fired, hk._tap = False, None
+    check("stopped hotkey listener reports itself unhealthy", not hk.is_healthy())
+
     settings = controller._settings
     orig_hotkey, orig_format = settings.hotkey, settings.image_format
     panel = SettingsPanel(settings, HotkeyListener(settings.hotkey))
@@ -334,6 +354,16 @@ def run_tests(app: QApplication, controller: CaptureController) -> None:
         "hotkey rebind recorded and persisted",
         settings.hotkey == expected9 and Settings.load().hotkey == expected9,
     )
+    panel._start_recording()
+    QTest.keyClick(panel, Qt.Key.Key_Escape)
+    check(
+        "esc cancels shortcut recording without closing the panel",
+        not panel._recording and panel.isVisible(),
+    )
+    QTest.keyClick(panel, Qt.Key.Key_Escape)
+    QTest.qWait(50)
+    check("esc closes settings panel", not panel.isVisible())
+
     settings.hotkey, settings.image_format = orig_hotkey, orig_format
     settings.save()  # restore the user's configuration
     panel.close()

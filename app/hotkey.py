@@ -6,9 +6,10 @@ import contextlib
 import os
 import sys
 import time
+import traceback
 
 from pynput import keyboard
-from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtCore import Qt, QObject, QTimer, pyqtSignal
 from PyQt6.QtGui import QKeyEvent
 
 
@@ -42,6 +43,38 @@ def _neutralize_macos_tis() -> None:
 
 
 _neutralize_macos_tis()
+
+# -- macOS event-tap health --------------------------------------------------
+# macOS switches an event tap off behind the app's back: when a tap callback
+# overruns its time limit, and — the common one — across sleep/wake, display
+# sleep and fast user switching. pynput neither notices nor re-enables it, so
+# the hotkey silently goes deaf until Captura is relaunched. It also can't
+# create a tap at all when the app launches at login before the permission
+# system is ready, and reports that as a listener that started fine. These two
+# Quartz calls let the watchdog below see the real state and repair it.
+_CGEventTapEnable = None
+_CGEventTapIsEnabled = None
+if sys.platform == "darwin":
+    try:
+        from Quartz import (  # noqa: F811  (pyobjc ships with pynput on macOS)
+            CGEventTapEnable as _CGEventTapEnable,
+            CGEventTapIsEnabled as _CGEventTapIsEnabled,
+        )
+    except Exception:
+        pass
+
+# Event types macOS delivers to the tap callback when it disables the tap
+# (kCGEventTapDisabledByTimeout / kCGEventTapDisabledByUserInput).
+_TAP_DISABLED_EVENTS = (0xFFFFFFFE, 0xFFFFFFFF)
+
+_WATCHDOG_INTERVAL_MS = 5000
+# Wall clock keeps running while the Mac sleeps; the monotonic clock does not.
+# A gap this large between the two across one tick means we just woke up.
+_SLEEP_GAP_SECONDS = 8.0
+# Backoff between restart attempts when the listener can't be created at all
+# (e.g. permissions not resolvable yet, moments after login).
+_RETRY_MIN_SECONDS = 2.0
+_RETRY_MAX_SECONDS = 60.0
 
 _QT_SPECIAL_KEYS = {
     Qt.Key.Key_Print: "<print_screen>",
@@ -129,6 +162,14 @@ class HotkeyListener(QObject):
     The pynput callback fires off the Qt main thread; ``triggered`` is
     therefore delivered as a queued cross-thread signal, so connected
     slots always run on the main thread.
+
+    A watchdog on the main thread keeps the listener honest. macOS hands out
+    event taps that stop working without saying so — disabled across sleep/wake
+    or after a tap timeout, and simply not created when the app launches at
+    login before the permission system is ready. In every one of those cases
+    pynput still reports a happily running listener, which is exactly the
+    "hotkey does nothing after waking the Mac" symptom. ``ensure_alive`` re-arms
+    the tap, or rebuilds the listener when the tap is gone for good.
     """
 
     triggered = pyqtSignal()
@@ -138,6 +179,13 @@ class HotkeyListener(QObject):
         self._hotkey = hotkey
         self._listener: keyboard.GlobalHotKeys | None = None
         self._fired = False
+        self._tap = None  # Quartz event tap handle (macOS only)
+        self._retry_delay = _RETRY_MIN_SECONDS
+        self._last_attempt = 0.0
+        self._last_tick = (time.monotonic(), time.time())
+        self._watchdog = QTimer(self)
+        self._watchdog.setInterval(_WATCHDOG_INTERVAL_MS)
+        self._watchdog.timeout.connect(self.ensure_alive)
 
     def _on_activate(self) -> None:
         # Runs on the listener thread, before the macOS intercept for the same
@@ -150,10 +198,19 @@ class HotkeyListener(QObject):
         # to pass it through, None to suppress. We drop only the keystroke that
         # just completed the hotkey, so it never reaches the focused app (e.g.
         # Finder turning Cmd+Ctrl+A into "Make Alias").
+        if event_type in _TAP_DISABLED_EVENTS:
+            # Not a keystroke: macOS telling us it just switched the tap off.
+            # Turning it back on here is the only way to recover without
+            # rebuilding the listener, and it keeps the hotkey alive across
+            # sleep/wake. Pass the event on untouched.
+            self._reenable_tap()
+            return event
         if self._fired:
             self._fired = False
             return None
         return event
+
+    # -- listener lifecycle ---------------------------------------------------
 
     def _make_listener(self) -> "keyboard.GlobalHotKeys":
         kwargs = {}
@@ -165,11 +222,43 @@ class HotkeyListener(QObject):
 
         if sys.platform == "darwin" and platform_setup.has_accessibility():
             kwargs["darwin_intercept"] = self._darwin_intercept
-        return keyboard.GlobalHotKeys({self._hotkey: self._on_activate}, **kwargs)
+        listener = keyboard.GlobalHotKeys({self._hotkey: self._on_activate}, **kwargs)
+        if sys.platform == "darwin":
+            self._capture_tap(listener)
+        return listener
+
+    def _capture_tap(self, listener: "keyboard.GlobalHotKeys") -> None:
+        """Keep a handle on the Quartz tap pynput creates on its own thread.
+
+        pynput creates the tap inside the listener thread and never exposes it,
+        so wrap that one call to keep the handle. Without it we can neither
+        check whether the tap is still enabled nor turn it back on."""
+        create = listener._create_event_tap
+
+        def _create_and_keep():
+            tap = create()
+            self._tap = tap
+            return tap
+
+        listener._create_event_tap = _create_and_keep
+
+    def _await_tap(self, timeout: float = 1.0) -> None:
+        """Block briefly until the listener thread has created its tap.
+
+        The thread creates the tap a beat after ``start()`` returns, so without
+        this the very first health check would see ``_tap is None`` and restart
+        a listener that was coming up fine."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self._tap is not None or not self._listener.is_alive():
+                return
+            time.sleep(0.02)
 
     def start(self) -> None:
         self.stop()
         self._fired = False
+        self._last_attempt = time.monotonic()
+        self._last_tick = (time.monotonic(), time.time())
         # macOS prints "This process is not trusted!" via C-level stderr from
         # CGEventTapCreate (in a background thread). Redirect fd 2 for a brief
         # window that covers both the Python call and thread startup.
@@ -180,15 +269,21 @@ class HotkeyListener(QObject):
             try:
                 self._listener = self._make_listener()
                 self._listener.start()
-                time.sleep(0.15)  # give the background thread time to create the event tap
+                self._await_tap()
             except Exception:
                 self._listener = None
             finally:
                 os.dup2(_saved, 2)
                 os.close(_saved)
                 os.close(_devnull)
-            if self._listener is None:
-                print("captura: hotkey listener unavailable (check Input Monitoring permission)", file=sys.stderr)
+            if self._listener is None or self._tap is None:
+                # A missing tap is the login-race case: the listener thread is
+                # up but deaf. The watchdog retries with backoff, so this stays
+                # a log line — no dialog, per the app's UI rules.
+                print(
+                    "captura: hotkey listener unavailable (check Input Monitoring permission)",
+                    file=sys.stderr,
+                )
         else:
             try:
                 self._listener = self._make_listener()
@@ -196,13 +291,87 @@ class HotkeyListener(QObject):
             except Exception as exc:
                 self._listener = None
                 print(f"captura: hotkey listener unavailable: {exc}", file=sys.stderr)
+        self._watchdog.start()
 
     def stop(self) -> None:
+        self._watchdog.stop()
+        self._tap = None
         if self._listener is not None:
             self._listener.stop()
             self._listener = None
 
     def set_hotkey(self, hotkey: str) -> None:
         self._hotkey = hotkey
-        if self._listener is not None:
+        if self._listener is not None or self._watchdog.isActive():
             self.start()
+
+    # -- health watchdog ------------------------------------------------------
+
+    def _thread_alive(self) -> bool:
+        listener = self._listener
+        # pynput leaves ``running`` True when its run loop drops out from under
+        # it, so the thread's own liveness is the honest half of this check.
+        return listener is not None and listener.running and listener.is_alive()
+
+    def _tap_enabled(self) -> bool | None:
+        """True/False if the tap's state is known, None if it isn't knowable."""
+        if self._tap is None or _CGEventTapIsEnabled is None:
+            return None
+        try:
+            return bool(_CGEventTapIsEnabled(self._tap))
+        except Exception:
+            return None
+
+    def _reenable_tap(self) -> bool:
+        if self._tap is None or _CGEventTapEnable is None:
+            return False
+        try:
+            _CGEventTapEnable(self._tap, True)
+            return True
+        except Exception:
+            return False
+
+    def is_healthy(self) -> bool:
+        """True if the hotkey would actually fire right now."""
+        if not self._thread_alive():
+            return False
+        if sys.platform != "darwin":
+            return True
+        if self._tap is None:
+            return False
+        return self._tap_enabled() is not False
+
+    def ensure_alive(self) -> None:
+        """Repair the listener if it has gone deaf. Safe to call any time."""
+        try:
+            mono, wall = time.monotonic(), time.time()
+            last_mono, last_wall = self._last_tick
+            self._last_tick = (mono, wall)
+            # The process is frozen while the Mac sleeps: the wall clock keeps
+            # running, the monotonic clock doesn't. A gap between the two means
+            # we just woke, which is when taps come back dead most often — and
+            # a dead tap can look enabled, so rebuild rather than probe.
+            if (wall - last_wall) - (mono - last_mono) > _SLEEP_GAP_SECONDS:
+                self._restart("woke from sleep")
+                return
+            if self.is_healthy():
+                self._retry_delay = _RETRY_MIN_SECONDS
+                return
+            # A tap that exists but was switched off only needs re-arming.
+            if self._thread_alive() and self._reenable_tap() and self.is_healthy():
+                self._retry_delay = _RETRY_MIN_SECONDS
+                return
+            if mono - self._last_attempt >= self._retry_delay:
+                self._restart("listener not responding")
+        except Exception:
+            traceback.print_exc()
+
+    def _restart(self, reason: str) -> None:
+        print(f"captura: restarting hotkey listener ({reason})", file=sys.stderr)
+        # start() resets _last_attempt, so a failed attempt can't spin: the
+        # delay doubles until the listener comes back (permission granted,
+        # login finished), then resets.
+        self._retry_delay = min(self._retry_delay * 2, _RETRY_MAX_SECONDS)
+        self.start()
+        if self.is_healthy():
+            self._retry_delay = _RETRY_MIN_SECONDS

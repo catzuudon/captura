@@ -314,10 +314,15 @@ class SettingsPanel(QWidget):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if not self._recording:
+            # Esc closes the panel. Nothing is pending — every change has
+            # already been applied and saved — so there is nothing to discard.
+            if event.key() == Qt.Key.Key_Escape:
+                self.close()
+                return
             super().keyPressEvent(event)
             return
         if event.key() == Qt.Key.Key_Escape:
-            self._stop_recording()
+            self._stop_recording()  # first Esc cancels the recording, not the panel
             return
         hotkey = hotkey_from_qt(event)
         if hotkey is None:
