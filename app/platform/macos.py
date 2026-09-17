@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.util
+import os
 from pathlib import Path
 from xml.sax.saxutils import escape as _xml_escape
 
@@ -138,6 +139,60 @@ def request_accessibility() -> bool:
         return trusted
     except Exception:
         return False
+
+
+# -- Secure Keyboard Entry -----------------------------------------------------
+# While any process holds Secure Input (a password field, Terminal's "Secure
+# Keyboard Entry", or — the nasty one — loginwindow after an unlock on macOS
+# 27), macOS delivers keyboard events to *no* event tap, system-wide. The tap
+# stays created, enabled and permitted, and hears nothing. Every permission
+# check passes, so without this it looks exactly like a broken hotkey.
+
+
+def secure_input_blocker() -> str | None:
+    """The app blocking the hotkey via Secure Keyboard Entry, or None if clear.
+
+    Captura provably never enables Secure Input itself (verified: Qt makes no
+    ``EnableSecureEventInput`` call), so whenever it is on, the cause is always
+    some other app — a focused password field, or an app like Signal, Terminal
+    or 1Password. ``kCGSSessionSecureInputPID`` names the *active* app, not the
+    one that enabled it, so it reads as Captura while a Captura window is
+    focused; we never report our own name — "another app" is the honest
+    fallback, since it genuinely is one."""
+    try:
+        carbon = ctypes.cdll.LoadLibrary(ctypes.util.find_library("Carbon"))
+        carbon.IsSecureEventInputEnabled.restype = ctypes.c_bool
+        if not carbon.IsSecureEventInputEnabled():
+            return None
+    except Exception:
+        return None
+    pid = _secure_input_pid()
+    if pid and pid != os.getpid():
+        return _process_name(pid) or "another app"
+    return "another app"
+
+
+def _secure_input_pid() -> int:
+    try:
+        import Quartz  # pyobjc, already a pynput dependency
+
+        session = Quartz.CGSessionCopyCurrentDictionary() or {}
+        return int(session.get("kCGSSessionSecureInputPID", 0) or 0)
+    except Exception:
+        return 0
+
+
+def _process_name(pid: int) -> str | None:
+    try:
+        libproc = ctypes.cdll.LoadLibrary("/usr/lib/libproc.dylib")
+        libproc.proc_name.restype = ctypes.c_int
+        libproc.proc_name.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+        buf = ctypes.create_string_buffer(256)
+        if libproc.proc_name(pid, buf, 256) > 0:
+            return buf.value.decode("utf-8", "replace")
+    except Exception:
+        pass
+    return None
 
 
 def tesseract_paths() -> list[str]:

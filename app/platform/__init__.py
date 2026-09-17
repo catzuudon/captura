@@ -114,6 +114,27 @@ def request_permission(name: str) -> None:
     open_permission_settings(name)
 
 
+def hotkey_blocker() -> str | None:
+    """macOS: name of the process holding Secure Keyboard Entry, which stops
+    every event tap on the system from receiving keystrokes — the hotkey is
+    healthy and permitted yet hears nothing. None when nothing blocks it, and
+    always None on other platforms (no equivalent mechanism)."""
+    fn = getattr(_impl, "secure_input_blocker", None)
+    return fn() if fn is not None else None
+
+
+def native_tray(icon_svg: str, tooltip: str, actions, update_callback):
+    """A platform-owned menu-bar item, or None to fall back to QSystemTrayIcon.
+
+    macOS gets a native NSStatusItem: Qt ≤ 6.11.2's tray icon aborts the
+    process on click under macOS 27 (see app/platform/macos_tray.py)."""
+    if sys.platform != "darwin":
+        return None
+    from app.platform.macos_tray import MacStatusItem
+
+    return MacStatusItem(icon_svg, tooltip, actions, update_callback)
+
+
 def tesseract_paths() -> list[str]:
     """Candidate Tesseract binary locations when it is not on PATH."""
     return _impl.tesseract_paths()

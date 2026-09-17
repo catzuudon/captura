@@ -42,7 +42,7 @@ Captura uses up to three macOS permissions (System Settings → Privacy & Securi
 | **Input Monitoring** | the global hotkey | Yes — prompted when the app starts |
 | **Accessibility** | stopping the hotkey from also reaching the focused app (e.g. Finder turning Cmd+Ctrl+A into "Make Alias") | Optional |
 
-The two required permissions are prompted automatically. **Accessibility is optional** — without it the hotkey still works, it just also passes through to whatever app is focused. macOS never prompts for Accessibility on its own, so Captura offers a **tray → Permissions…** item that requests all three and opens the right Settings panes for any that are missing. After granting a permission, you may need to relaunch (macOS applies some grants only on next launch).
+The two required permissions are prompted automatically. If the hotkey ever stops while permissions stay granted, another app is holding macOS **Secure Keyboard Entry** (a focused password field, or apps like Signal, 1Password or Terminal) — that blocks *every* app's global shortcuts until it's dismissed; Captura flags this in its menu and Permissions window. **Accessibility is optional** — without it the hotkey still works, it just also passes through to whatever app is focused. macOS never prompts for Accessibility on its own, so Captura offers a **tray → Permissions…** item that requests all three and opens the right Settings panes for any that are missing. After granting a permission, you may need to relaunch (macOS applies some grants only on next launch).
 
 > **First launch is blocked by macOS.** You'll see *"Apple could not verify 'Captura' is free of malware…"* — expected for an open-source app not signed with a paid Apple certificate. To allow it:
 >

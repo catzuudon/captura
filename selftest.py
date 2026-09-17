@@ -382,6 +382,25 @@ def main() -> int:
     tray = TrayIcon()
     tray.show()
     check("tray icon visible", tray.isVisible())
+    if sys.platform == "darwin":
+        # Qt <= 6.11.2's QSystemTrayIcon aborts on click under macOS 27; the
+        # menu-bar item must be the native one, and its actions must still
+        # reach the Qt signals through AppKit's real target/action dispatch.
+        check("macOS tray is native (not QSystemTrayIcon)", tray._native is not None)
+        fired: list[str] = []
+        tray.capture_requested.connect(lambda: fired.append("capture"))
+        tray.settings_requested.connect(lambda: fired.append("settings"))
+        for item in tray._native._menu.itemArray():
+            if item.title() in ("Capture", "Settings"):
+                item.target().performSelector_withObject_(item.action(), item)
+        check("native menu actions reach Qt signals", fired == ["capture", "settings"])
+        tray.show_warning("Hotkey blocked — test")
+        top = tray._native._menu.itemArray()[0]
+        shown = not top.isHidden() and not top.isEnabled() and top.title().startswith("Hotkey blocked")
+        tray.show_warning(None)
+        check("tray warning line shows and hides", shown and top.isHidden())
+        blocker = platform_setup.hotkey_blocker()
+        check("secure-input probe returns a name or None", blocker is None or isinstance(blocker, str))
 
     controller = CaptureController(settings)
 

@@ -77,6 +77,15 @@ def main() -> int:
     tray.quit_requested.connect(app.quit)
     tray.show()
 
+    # A process holding macOS Secure Keyboard Entry silences the hotkey while
+    # every permission stays granted. Say so in the menu, never in a dialog.
+    def show_blocker(name: str) -> None:
+        # name is "" when clear, else the blocking app ("Signal") or "another app".
+        tray.show_warning(f"Shortcut blocked by Secure Input ({name})" if name else None)
+
+    hotkey.blocked_changed.connect(show_blocker)
+    show_blocker(hotkey.blocker())
+
     # Opt-in, off by default: when enabled, anonymously check GitHub for a newer
     # release on launch and once a day, surfacing a link in the tray if found.
     update_ref: dict[str, object] = {}

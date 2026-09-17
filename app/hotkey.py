@@ -173,6 +173,9 @@ class HotkeyListener(QObject):
     """
 
     triggered = pyqtSignal()
+    # Name of the process silencing the hotkey via macOS Secure Keyboard Entry,
+    # or "" once it lets go. Emitted only on change, from the watchdog.
+    blocked_changed = pyqtSignal(str)
 
     def __init__(self, hotkey: str) -> None:
         super().__init__()
@@ -180,6 +183,7 @@ class HotkeyListener(QObject):
         self._listener: keyboard.GlobalHotKeys | None = None
         self._fired = False
         self._tap = None  # Quartz event tap handle (macOS only)
+        self._blocker = ""
         self._retry_delay = _RETRY_MIN_SECONDS
         self._last_attempt = 0.0
         self._last_tick = (time.monotonic(), time.time())
@@ -291,6 +295,7 @@ class HotkeyListener(QObject):
             except Exception as exc:
                 self._listener = None
                 print(f"captura: hotkey listener unavailable: {exc}", file=sys.stderr)
+        self._check_blocker()  # so callers see the state immediately, not after the first tick
         self._watchdog.start()
 
     def stop(self) -> None:
@@ -341,9 +346,33 @@ class HotkeyListener(QObject):
             return False
         return self._tap_enabled() is not False
 
+    def blocker(self) -> str:
+        """Process currently holding Secure Keyboard Entry, or ""."""
+        return self._blocker
+
+    def _check_blocker(self) -> None:
+        # A tap can be created, enabled and permitted and still hear nothing:
+        # while any process holds Secure Keyboard Entry, macOS delivers
+        # keystrokes to no tap at all. Nothing here can fix that — it's the
+        # other process's to release — but it must be *said*, or it looks
+        # exactly like a broken hotkey with every permission check passing.
+        from app import platform as platform_setup
+
+        blocker = platform_setup.hotkey_blocker() or ""
+        if blocker == self._blocker:
+            return
+        self._blocker = blocker
+        if blocker:
+            print(f"captura: hotkey silenced — macOS Secure Keyboard Entry is held by {blocker}",
+                  file=sys.stderr)
+        else:
+            print("captura: Secure Keyboard Entry released; hotkey active again", file=sys.stderr)
+        self.blocked_changed.emit(blocker)
+
     def ensure_alive(self) -> None:
         """Repair the listener if it has gone deaf. Safe to call any time."""
         try:
+            self._check_blocker()
             mono, wall = time.monotonic(), time.time()
             last_mono, last_wall = self._last_tick
             self._last_tick = (mono, wall)

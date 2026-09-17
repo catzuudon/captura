@@ -3,6 +3,37 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.1.2] — 2026-09-17
+
+macOS 26 → 27 (Tahoe) broke the app two ways. Both are fixed; neither was ever
+a permission problem, though both looked like one.
+
+### Fixed
+- **Clicking the menu-bar icon no longer quits Captura.** Under macOS 27,
+  AppKit drives controls through gesture recognizers, so the event live when a
+  status-item click fires is often not a mouse event. Qt ≤ 6.11.2 calls
+  `-[NSEvent clickCount]` on it unconditionally, which asserts and aborts the
+  whole process (`SIGABRT`) — so the app vanished the instant its icon was
+  clicked, which also made the Permissions and Settings windows unreachable.
+  Qt has fixed this upstream (qtbase 6192d9edd0, 2026-07-30) but no released
+  PyQt6 carries it yet. Captura now owns its menu-bar item natively
+  (`NSStatusItem`, in `app/platform/macos_tray.py`) instead of using
+  `QSystemTrayIcon`, so Qt's crashing path is never registered on any Qt
+  version. Windows and Linux are unchanged (still `QSystemTrayIcon`).
+
+### Added
+- **The hotkey now tells you when macOS is blocking it.** While any app holds
+  *Secure Keyboard Entry* (a focused password field, or apps like Signal,
+  1Password or Terminal), macOS delivers keyboard events to **no** event tap
+  system-wide — so the global hotkey goes silent while every permission stays
+  granted and the listener stays healthy. That is exactly the "hotkey stopped
+  working for no reason" symptom. Captura never enables Secure Input itself
+  (verified: Qt makes no such call), so it can't switch it off — but it now
+  detects the state and surfaces it instead of failing silently: a status line
+  at the top of the menu, and a "Keyboard events" row in the Permissions window
+  explaining which kind of app to dismiss. The v1.1.0 hotkey watchdog carries
+  the check, so it clears on its own the moment Secure Input is released.
+
 ## [1.1.1] — 2026-09-10
 
 ### Security
