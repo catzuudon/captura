@@ -3,6 +3,29 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.1.4] — 2026-09-18
+
+The real fix for "the hotkey randomly stops working" on macOS — and it turned
+out to also remove two of the three permissions.
+
+### Fixed
+- **The global hotkey no longer dies when another app holds Secure Keyboard
+  Entry.** 1.1.2 could only *report* that condition (Signal, 1Password, a
+  password field…) because pynput's `CGEventTap` is silenced by it system-wide.
+  The macOS hotkey now uses Carbon **`RegisterEventHotKey`** instead of an event
+  tap — it is immune to Secure Keyboard Entry (verified: it fires with Secure
+  Input on), so the shortcut keeps working no matter what else is running. The
+  "Hotkey paused — Secure Keyboard Entry is on" message is gone because the
+  hotkey is no longer paused. Windows and Linux keep the pynput listener.
+
+### Changed
+- **macOS now needs only one permission: Screen Recording.** `RegisterEventHotKey`
+  requires neither Input Monitoring nor Accessibility (it's not an event tap and
+  reads no input), and it consumes the combo itself so the old Accessibility-based
+  suppression is unnecessary. Verified in a fresh build with both revoked and
+  Secure Input on: the hotkey still opened a capture. The Permissions window and
+  the website reflect the shorter list.
+
 ## [1.1.3] — 2026-09-17
 
 ### Added

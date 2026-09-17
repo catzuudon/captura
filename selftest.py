@@ -340,6 +340,51 @@ def run_tests(app: QApplication, controller: CaptureController) -> None:
         hk._fired, hk._tap = False, None
     check("stopped hotkey listener reports itself unhealthy", not hk.is_healthy())
 
+    # macOS uses Carbon RegisterEventHotKey (immune to Secure Keyboard Entry),
+    # not pynput's event tap. Verify the real backend registers and fires — even
+    # with Secure Input on, which is exactly what silenced the old tap.
+    if sys.platform == "darwin":
+        import ctypes
+        import ctypes.util
+
+        from app.platform.macos_hotkey import parse_hotkey
+
+        check("carbon hotkey parses combo", parse_hotkey("<cmd>+<ctrl>+a") == (0, 0x0100 | 0x1000))
+        carbon_hk = HotkeyListener("<cmd>+<ctrl>+a")
+        check("macOS hotkey uses the Carbon backend", carbon_hk._carbon is not None)
+        carbon_fired = []
+        carbon_hk.triggered.connect(lambda: carbon_fired.append(1))
+        carbon_hk.start()
+        check("carbon hotkey registers", carbon_hk._carbon.is_registered())
+
+        _cg = ctypes.cdll.LoadLibrary(ctypes.util.find_library("CoreGraphics"))
+        _cg.CGEventCreateKeyboardEvent.restype = ctypes.c_void_p
+        _cg.CGEventCreateKeyboardEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint16, ctypes.c_bool]
+        _cg.CGEventSetFlags.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+        _cg.CGEventPost.argtypes = [ctypes.c_uint32, ctypes.c_void_p]
+        _carbon = ctypes.cdll.LoadLibrary(ctypes.util.find_library("Carbon"))
+        _carbon.EnableSecureEventInput.restype = None
+        _carbon.DisableSecureEventInput.restype = None
+
+        def _post_cmd_ctrl_a():
+            for down in (True, False):
+                ev = _cg.CGEventCreateKeyboardEvent(None, 0, down)
+                _cg.CGEventSetFlags(ev, 0x100000 | 0x40000)  # cmd | control
+                _cg.CGEventPost(0, ev)
+                QTest.qWait(30)
+
+        _post_cmd_ctrl_a(); QTest.qWait(200)
+        check("carbon hotkey fires", len(carbon_fired) >= 1)
+
+        _carbon.EnableSecureEventInput()
+        before = len(carbon_fired)
+        _post_cmd_ctrl_a(); QTest.qWait(200)
+        _carbon.DisableSecureEventInput()
+        check("carbon hotkey fires under Secure Keyboard Entry", len(carbon_fired) > before)
+
+        carbon_hk.stop()
+        check("carbon hotkey unregisters on stop", not carbon_hk._carbon.is_registered())
+
     settings = controller._settings
     orig_hotkey, orig_format = settings.hotkey, settings.image_format
     panel = SettingsPanel(settings, HotkeyListener(settings.hotkey))

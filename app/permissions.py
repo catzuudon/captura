@@ -7,7 +7,7 @@ triggers the native prompt.
 """
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import (
     QFrame,
@@ -21,10 +21,11 @@ from PyQt6.QtWidgets import (
 from app import platform as platform_setup
 
 # (name, description, required?)
+# Since 1.1.4 the global hotkey uses Carbon RegisterEventHotKey, which needs no
+# Input Monitoring or Accessibility — so Screen Recording (for the capture) is
+# the only macOS permission Captura requires.
 _PERMISSIONS = [
     ("Screen Recording", "Capture the screen", True),
-    ("Input Monitoring", "Use the global capture hotkey", True),
-    ("Accessibility", "Stop the hotkey reaching other apps", False),
 ]
 
 _STYLE = """
@@ -90,29 +91,6 @@ class PermissionsPanel(QWidget):
             outer.addLayout(row)
             self._rows.append((name, status, button))
 
-        # Not a permission, but it fails the same way one does — hotkey silent,
-        # every grant present — so it belongs on this screen. macOS delivers
-        # keystrokes to no event tap while any process holds Secure Keyboard
-        # Entry (a password field, Terminal's Secure Keyboard Entry, or
-        # loginwindow lingering after an unlock).
-        sep2 = QFrame()
-        sep2.setObjectName("sep")
-        outer.addSpacing(8)
-        outer.addWidget(sep2)
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 8, 0, 8)
-        text = QVBoxLayout()
-        text.setSpacing(2)
-        text.addWidget(QLabel("Keyboard events"))
-        self._secure_desc = QLabel("Reach the hotkey only while no app holds Secure Keyboard Entry")
-        self._secure_desc.setObjectName("desc")
-        self._secure_desc.setWordWrap(True)
-        text.addWidget(self._secure_desc)
-        row.addLayout(text, 1)
-        self._secure_status = QLabel()
-        row.addWidget(self._secure_status)
-        outer.addLayout(row)
-
         note = QLabel("After enabling a permission, relaunch Captura for it to take effect.")
         note.setObjectName("subtitle")
         note.setWordWrap(True)
@@ -127,43 +105,12 @@ class PermissionsPanel(QWidget):
         outer.addSpacing(8)
         outer.addWidget(version)
 
-        # Secure Input comes and goes with focus (a password field grabs it,
-        # leaving it lets go), so poll while the window is open.
-        self._poll = QTimer(self)
-        self._poll.setInterval(1500)
-        self._poll.timeout.connect(self._refresh_secure_input)
-
         self._refresh()
 
     def _grant(self, name: str) -> None:
         platform_setup.request_permission(name)
 
-    def _refresh_secure_input(self) -> None:
-        try:
-            blocker = platform_setup.hotkey_blocker()
-        except Exception:
-            blocker = None
-        label = self._secure_status
-        if blocker:
-            label.setText("Paused")
-            label.setObjectName("missing")
-            named = "" if blocker == "another app" else f" ({blocker})"
-            self._secure_desc.setText(
-                f"macOS Secure Keyboard Entry is on{named}, so the system sends keystrokes to no "
-                "global shortcut at all — Captura's included. It's switched on by a focused "
-                "password field or an app like Signal, 1Password or Terminal (Terminal has it "
-                "under its Edit menu). Close that field or quit the app and the shortcut returns; "
-                "nothing here needs changing."
-            )
-        else:
-            label.setText("✓ Reaching Captura")
-            label.setObjectName("granted")
-            self._secure_desc.setText("Reach the hotkey only while no app holds Secure Keyboard Entry")
-        label.style().unpolish(label)
-        label.style().polish(label)
-
     def _refresh(self) -> None:
-        self._refresh_secure_input()
         status = platform_setup.permission_status()
         for name, label, button in self._rows:
             granted = status.get(name, False)
@@ -181,12 +128,7 @@ class PermissionsPanel(QWidget):
 
     def showEvent(self, event) -> None:  # re-check each time it's shown
         self._refresh()
-        self._poll.start()
         super().showEvent(event)
-
-    def hideEvent(self, event) -> None:
-        self._poll.stop()
-        super().hideEvent(event)
 
     def focusInEvent(self, event) -> None:  # and when returning from Settings
         self._refresh()

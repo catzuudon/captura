@@ -51,7 +51,6 @@ def main() -> int:
 
     def open_permissions() -> None:
         try:
-            had_accessibility = platform_setup.has_accessibility()
             panel = perm_ref.get("panel")
             if panel is None or not panel.isVisible():
                 panel = PermissionsPanel()
@@ -60,10 +59,6 @@ def main() -> int:
             platform_setup.activate_app()
             panel.raise_()
             panel.activateWindow()
-            # If Accessibility was granted since the listener started, restart
-            # it so the active tap (hotkey suppression) takes effect.
-            if not had_accessibility and platform_setup.has_accessibility():
-                hotkey.start()
         except Exception:
             traceback.print_exc()
 
@@ -76,15 +71,6 @@ def main() -> int:
     )
     tray.quit_requested.connect(app.quit)
     tray.show()
-
-    # A process holding macOS Secure Keyboard Entry silences the hotkey while
-    # every permission stays granted. Say so in the menu, never in a dialog.
-    def show_blocker(name: str) -> None:
-        # name is "" when clear, else the blocking app ("Signal") or "another app".
-        tray.show_warning(f"Hotkey paused — Secure Keyboard Entry is on ({name})" if name else None)
-
-    hotkey.blocked_changed.connect(show_blocker)
-    show_blocker(hotkey.blocker())
 
     # Opt-in, off by default: when enabled, anonymously check GitHub for a newer
     # release on launch and once a day, surfacing a link in the tray if found.

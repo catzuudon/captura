@@ -325,13 +325,11 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 macOS permissions
               </div>
-              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">Grant these under <strong style="color:#cdcdd4">System Settings → Privacy &amp; Security</strong>:</p>
+              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">Grant one thing under <strong style="color:#cdcdd4">System Settings → Privacy &amp; Security</strong>:</p>
               <ul style="margin:10px 0 0;padding-left:18px;font-size:13px;color:#9a9aa2;line-height:1.7">
                 <li><strong style="color:#cdcdd4">Screen Recording</strong> — required, to capture pixels. Prompted on first capture.</li>
-                <li><strong style="color:#cdcdd4">Input Monitoring</strong> — required, for the global hotkey. Prompted on launch.</li>
-                <li><strong style="color:#cdcdd4">Accessibility</strong> — optional. Only stops the hotkey also reaching the app you're in.</li>
               </ul>
-              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">macOS never asks for Accessibility on its own — use <strong style="color:#cdcdd4">tray → Permissions…</strong>, which shows what's granted and opens the right pane for anything missing.</p>
+              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">That's the only permission Captura needs. The global hotkey uses macOS's built-in shortcut registration, so it needs no Input Monitoring or Accessibility and keeps working even when another app has Secure Keyboard Entry on. The <strong style="color:#cdcdd4">tray → Permissions…</strong> window shows the grant state.</p>
             </div>
           </div>
         </div>

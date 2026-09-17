@@ -191,6 +191,18 @@ class HotkeyListener(QObject):
         self._watchdog.setInterval(_WATCHDOG_INTERVAL_MS)
         self._watchdog.timeout.connect(self.ensure_alive)
 
+        # macOS: use a Carbon RegisterEventHotKey instead of pynput's event tap.
+        # A tap is silenced whenever any app holds Secure Keyboard Entry (Signal
+        # etc.), which made the hotkey randomly die; RegisterEventHotKey is immune
+        # to it, needs neither Input Monitoring nor Accessibility, and consumes
+        # the combo so it never leaks to the focused app. pynput stays the
+        # backend on Windows/Linux (with the watchdog and blocker machinery).
+        self._carbon = None
+        if sys.platform == "darwin":
+            from app.platform.macos_hotkey import CarbonHotKey
+
+            self._carbon = CarbonHotKey(hotkey, self.triggered.emit)
+
     def _on_activate(self) -> None:
         # Runs on the listener thread, before the macOS intercept for the same
         # key event — set the flag so the intercept swallows that keystroke.
@@ -259,6 +271,14 @@ class HotkeyListener(QObject):
             time.sleep(0.02)
 
     def start(self) -> None:
+        if self._carbon is not None:  # macOS: Carbon RegisterEventHotKey path
+            if not self._carbon.start():
+                print(
+                    "captura: could not register the global hotkey "
+                    f"({self._hotkey!r}) — it may be unmappable or already taken",
+                    file=sys.stderr,
+                )
+            return
         self.stop()
         self._fired = False
         self._last_attempt = time.monotonic()
@@ -299,6 +319,9 @@ class HotkeyListener(QObject):
         self._watchdog.start()
 
     def stop(self) -> None:
+        if self._carbon is not None:
+            self._carbon.stop()
+            return
         self._watchdog.stop()
         self._tap = None
         if self._listener is not None:
@@ -307,6 +330,9 @@ class HotkeyListener(QObject):
 
     def set_hotkey(self, hotkey: str) -> None:
         self._hotkey = hotkey
+        if self._carbon is not None:
+            self._carbon.set_hotkey(hotkey)
+            return
         if self._listener is not None or self._watchdog.isActive():
             self.start()
 
