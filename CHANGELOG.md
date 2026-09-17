@@ -3,6 +3,20 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.1.3] — 2026-09-17
+
+### Added
+- **Version number is now visible in the app.** It shows as a muted footer in
+  the Settings panel and the Permissions window, and in the menu-bar icon's
+  tooltip — so the installed build is identifiable at a glance (unsigned
+  rebuilds are otherwise indistinguishable).
+
+### Changed
+- The Secure Keyboard Entry indicator now reads as the temporary, external
+  condition it is ("Hotkey paused — Secure Keyboard Entry is on", "Paused")
+  rather than sounding like a Captura error. It is not a fault in Captura: while
+  another app holds Secure Input, macOS blocks every app's global shortcuts.
+
 ## [1.1.2] — 2026-09-17
 
 macOS 26 → 27 (Tahoe) broke the app two ways. Both are fixed; neither was ever

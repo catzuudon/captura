@@ -134,6 +134,7 @@ QCheckBox::indicator:checked {
     background: #4f7dff; border-color: #4f7dff; image: url(%(check)s);
 }
 QLabel#status { color: #e0a060; font-size: 11px; }
+QLabel#version { color: #6f6f78; font-size: 11px; }
 """ % {"check": (ASSETS_DIR / "check.svg").as_posix()}
 
 _CONTROL_WIDTH = 190
@@ -225,6 +226,16 @@ class SettingsPanel(QWidget):
         self._status.hide()
         outer.addSpacing(6)
         outer.addWidget(self._status)
+
+        # Version footer, so the installed build is identifiable at a glance
+        # (unsigned rebuilds look identical otherwise).
+        from app import __version__
+
+        version = QLabel(f"Captura {__version__}")
+        version.setObjectName("version")
+        version.setAlignment(Qt.AlignmentFlag.AlignRight)
+        outer.addSpacing(10)
+        outer.addWidget(version)
 
     def _field_label(self, text: str) -> QLabel:
         return QLabel(text)

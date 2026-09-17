@@ -36,6 +36,9 @@ class TrayIcon(QObject):
 
     def __init__(self) -> None:
         super().__init__()
+        from app import __version__
+
+        tooltip = f"Captura {__version__}"
         actions = [
             ("Capture", self.capture_requested.emit),
             ("Settings", self.settings_requested.emit),
@@ -45,9 +48,19 @@ class TrayIcon(QObject):
         actions.append(("Quit", self.quit_requested.emit))
 
         self._native = platform_setup.native_tray(
-            str(_MAC_ICON_PATH), "Captura", actions, self.update_requested.emit
+            str(_MAC_ICON_PATH), tooltip, actions, self.update_requested.emit
         )
         self._qt: _QtTray | None = None if self._native else _QtTray(actions, self.update_requested.emit)
+        self._base_tooltip = tooltip  # "Captura <version>" — restored when a transient note clears
+        if self._qt:
+            self._qt.setToolTip(tooltip)
+
+    def _set_tooltip(self, text: str | None) -> None:
+        tip = text or self._base_tooltip
+        if self._native:
+            self._native.set_tooltip(tip)
+        else:
+            self._qt.setToolTip(tip)
 
     def show(self) -> None:
         (self._native or self._qt).show()
@@ -58,12 +71,8 @@ class TrayIcon(QObject):
     def show_update_available(self, version: str) -> None:
         """Reveal a quiet 'Update available' menu item linking to the release."""
         label = f"Update available ({version}) →"
-        if self._native:
-            self._native.set_update(label)
-            self._native.set_tooltip(f"Captura — update {version} available")
-        else:
-            self._qt.set_update(label)
-            self._qt.setToolTip(f"Captura — update {version} available")
+        (self._native or self._qt).set_update(label)
+        self._set_tooltip(f"{self._base_tooltip} — update {version} available")
 
     def show_warning(self, text: str | None) -> None:
         """A disabled status line at the top of the menu (None hides it).
@@ -71,11 +80,8 @@ class TrayIcon(QObject):
         This is how a system condition that silences the hotkey — macOS Secure
         Keyboard Entry — gets surfaced without a popup: the menu the user opens
         to find out why nothing happens says why."""
-        if self._native:
-            self._native.set_warning(text)
-            self._native.set_tooltip(f"Captura — {text}" if text else "Captura")
-        else:
-            self._qt.set_warning(text)
+        (self._native or self._qt).set_warning(text)
+        self._set_tooltip(f"Captura — {text}" if text else None)
 
 
 class _QtTray(QSystemTrayIcon):

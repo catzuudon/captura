@@ -81,7 +81,7 @@ def main() -> int:
     # every permission stays granted. Say so in the menu, never in a dialog.
     def show_blocker(name: str) -> None:
         # name is "" when clear, else the blocking app ("Signal") or "another app".
-        tray.show_warning(f"Shortcut blocked by Secure Input ({name})" if name else None)
+        tray.show_warning(f"Hotkey paused — Secure Keyboard Entry is on ({name})" if name else None)
 
     hotkey.blocked_changed.connect(show_blocker)
     show_blocker(hotkey.blocker())

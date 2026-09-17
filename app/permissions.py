@@ -119,6 +119,14 @@ class PermissionsPanel(QWidget):
         outer.addSpacing(10)
         outer.addWidget(note)
 
+        from app import __version__
+
+        version = QLabel(f"Captura {__version__}")
+        version.setObjectName("subtitle")
+        version.setAlignment(Qt.AlignmentFlag.AlignRight)
+        outer.addSpacing(8)
+        outer.addWidget(version)
+
         # Secure Input comes and goes with focus (a password field grabs it,
         # leaving it lets go), so poll while the window is open.
         self._poll = QTimer(self)
@@ -137,7 +145,7 @@ class PermissionsPanel(QWidget):
             blocker = None
         label = self._secure_status
         if blocker:
-            label.setText("Blocked")
+            label.setText("Paused")
             label.setObjectName("missing")
             named = "" if blocker == "another app" else f" ({blocker})"
             self._secure_desc.setText(
