@@ -3,395 +3,549 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Captura — screenshot, annotate &amp; OCR</title>
+<title>Captura: open-source screenshot, annotate &amp; OCR tool</title>
 <meta name="description" content="Press a key, drag to select, annotate, copy. Captura is a minimalist, open-source screenshot tool with built-in on-device OCR. macOS, Windows, and Linux.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f7dff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v2'/%3E%3Cpath d='M20 16v2a2 2 0 0 1-2 2h-2'/%3E%3Cpath d='M8 20H6a2 2 0 0 1-2-2v-2'/%3E%3Ccircle cx='12' cy='12' r='3.1'/%3E%3C/svg%3E">
+<link rel="canonical" href="https://catzuudon.github.io/captura/">
+<meta name="theme-color" content="#0b0c10">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Captura — screenshot, annotate & OCR">
+<meta property="og:site_name" content="Captura">
+<meta property="og:url" content="https://catzuudon.github.io/captura/">
+<meta property="og:title" content="Captura: open-source screenshot, annotate & OCR tool">
 <meta property="og:description" content="Press a key, drag to select, annotate, copy. Built-in on-device OCR. Open source, macOS / Windows / Linux.">
-<style>
-  :root{ --accent:#4f7dff; }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{margin:0;background:#08080a;color:#f4f4f6;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-  a{color:inherit}
-  ::selection{background:rgba(79,125,255,.32)}
-  @keyframes capSel{0%,5%{width:0;height:0;opacity:0}12%{opacity:1}45%{width:300px;height:170px;opacity:1}86%{width:300px;height:170px;opacity:1}95%,100%{width:300px;height:170px;opacity:0}}
-  @keyframes keyTap{0%,4%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.95)}10%,22%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}30%,100%{opacity:0;transform:translateX(-50%) translateY(0) scale(1)}}
-  @keyframes toastPop{0%,72%{opacity:0;transform:translate(-50%,8px)}80%,92%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,4px)}}
-  @keyframes scanMove{0%{top:-2%}100%{top:102%}}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
-  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-  .mono{font-family:ui-monospace,'SF Mono',Menlo,monospace}
-  [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
-  [data-reveal].shown{opacity:1;transform:none}
-  @media (prefers-reduced-motion: reduce){
-    [data-reveal]{opacity:1;transform:none;transition:none}
-    .demo *{animation:none !important}
-  }
-  /* nav links hidden on small screens */
-  @media (max-width:760px){ .navlinks{display:none !important} }
-</style>
+<meta property="og:image" content="https://catzuudon.github.io/captura/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Captura capture overlay: a selection frame around three release notes with the annotation toolbar beneath it">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Captura: open-source screenshot, annotate & OCR tool">
+<meta name="twitter:description" content="Press a key, drag to select, annotate, copy. Built-in on-device OCR. Open source, macOS / Windows / Linux.">
+<meta name="twitter:image" content="https://catzuudon.github.io/captura/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Captura",
+  "description": "A minimalist, open-source screenshot tool with annotation and built-in on-device OCR for macOS, Windows and Linux.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "macOS, Windows, Linux",
+  "url": "https://catzuudon.github.io/captura/",
+  "downloadUrl": "https://github.com/catzuudon/captura/releases/latest",
+  "license": "https://github.com/catzuudon/captura/blob/main/LICENSE",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "catzuudon",
+    "url": "https://github.com/catzuudon"
+  },
+  "sameAs": [
+    "https://github.com/catzuudon/captura"
+  ],
+  "featureList": [
+    "Global hotkey and drag-to-select capture",
+    "Adjustable selection frame",
+    "Annotation: pen, line, arrow, rectangle, ellipse, text, highlighter",
+    "On-device OCR with Tesseract"
+  ]
+}
+</script>
+<link rel="preload" href="fonts/host-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/atkinson-hyperlegible-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="root" style="position:relative;min-height:100vh;overflow:hidden">
 
-  <!-- ambient glow -->
-  <div style="position:absolute;top:-260px;left:50%;transform:translateX(-50%);width:1100px;height:620px;background:radial-gradient(60% 60% at 50% 40%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%);filter:blur(40px);opacity:.5;pointer-events:none;z-index:0"></div>
+<!-- the app's own tool icons, defined once -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-select" viewBox="0 0 24 24"><path d="M5 3l14 10-6 1-3 6z"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M17 3l4 4L9 19l-6 2 2-6z"/></symbol>
+  <symbol id="i-line" viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="11 5 19 5 19 13"/></symbol>
+  <symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></symbol>
+  <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="6"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6h14M12 6v13"/></symbol>
+  <symbol id="i-highlighter" viewBox="0 0 24 24"><path d="M15 4l5 5-9 9-5-5z"/><path d="M6 13l-2 7 7-2"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h4"/></symbol>
+  <symbol id="i-ocr" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M20 16v2a2 2 0 0 1-2 2h-2"/><path d="M8 20H6a2 2 0 0 1-2-2v-2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></symbol>
+</svg>
 
-  <!-- NAV -->
-  <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 24px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(8,8,10,.66);border-bottom:1px solid rgba(255,255,255,.06)">
-    <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#f4f4f6">
-      <span style="display:flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:9px;background:#141418;border:1px solid rgba(255,255,255,.08);color:var(--accent)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
-      </span>
-      <span style="font-size:16px;font-weight:650;letter-spacing:-.01em">Captura</span>
-    </a>
-    <div style="display:flex;align-items:center;gap:6px">
-      <div style="display:flex;align-items:center;gap:2px" class="navlinks">
-        <a href="#features" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">Features</a>
-        <a href="#how" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">How it works</a>
-        <a href="#playground" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">Playground</a>
-        <a href="#ocr" style="text-decoration:none;color:#9a9aa2;font-size:14px;padding:8px 12px;border-radius:8px" data-hover="color:#f4f4f6;background:rgba(255,255,255,.04)">OCR</a>
-      </div>
-      <a href="#download" style="margin-left:8px;text-decoration:none;font-size:14px;font-weight:600;color:#fff;padding:9px 16px;border-radius:9px;background:var(--accent);box-shadow:0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent)" data-hover="filter:brightness(1.08)">Download</a>
-    </div>
-  </nav>
+<a class="skip" href="#main">Skip to content</a>
 
-  <!-- HERO -->
-  <header id="top" style="position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:72px 24px 40px">
-    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:56px">
-      <div style="flex:1 1 360px;min-width:320px">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);font-size:12.5px;color:#b9b9c0" class="mono">
-          <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)"></span>Open-source · cross-platform
-        </div>
-        <h1 style="margin:22px 0 0;font-size:54px;line-height:1.04;letter-spacing:-.03em;font-weight:680;background:linear-gradient(180deg,#fff,#c8c8d0);-webkit-background-clip:text;background-clip:text;color:transparent">Snap it. Mark it up.<br>Pull the text out.</h1>
-        <p style="margin:22px 0 0;font-size:18px;line-height:1.55;color:#9a9aa2;max-width:480px">Press a key, drag to select, annotate, copy. Built-in OCR lifts text from anything on your screen — no popups, no noise.</p>
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:32px">
-          <a id="dl-hero" href="#download" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-size:15px;font-weight:600;color:#fff;padding:13px 22px;border-radius:11px;background:var(--accent);box-shadow:0 10px 30px color-mix(in srgb, var(--accent) 38%, transparent)" data-hover="transform:translateY(-1px);filter:brightness(1.07)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M5 21h14"></path></svg>
-            <span id="dl-hero-label">Download for macOS</span>
-          </a>
-          <a id="gh-hero" href="#download" style="text-decoration:none;font-size:14.5px;color:#b9b9c0;border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:2px" data-hover="color:#fff">See all downloads on GitHub →</a>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:26px">
-          <span id="ver-pill" style="display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);background:color-mix(in srgb, var(--accent) 10%, transparent);font-size:12.5px;color:#dfe2ff" class="mono"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent)"></span>Free &amp; open source</span>
-          <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.08);font-size:12.5px;color:#b9b9c0" class="mono">macOS · Windows · Linux</span>
-        </div>
-      </div>
+<div class="bg" aria-hidden="true">
+  <div class="bg__glow bg__glow--1"></div>
+  <div class="bg__glow bg__glow--2"></div>
+  <div class="bg__grid bg__grid--a"></div>
+  <div class="bg__grid bg__grid--b"></div>
+</div>
 
-      <!-- animated capture demo -->
-      <div style="flex:1 1 380px;min-width:340px">
-        <div class="demo" style="position:relative;width:100%;aspect-ratio:16/10;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.09);background:linear-gradient(135deg,#15151c,#0b0b10);box-shadow:0 30px 80px rgba(0,0,0,.55)">
-          <div style="position:absolute;inset:26px 30px 26px 30px;border-radius:11px;background:#101015;border:1px solid rgba(255,255,255,.07);overflow:hidden">
-            <div style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)">
-              <span style="width:9px;height:9px;border-radius:50%;background:#ff5f57"></span>
-              <span style="width:9px;height:9px;border-radius:50%;background:#febc2e"></span>
-              <span style="width:9px;height:9px;border-radius:50%;background:#28c840"></span>
-              <span style="margin-left:8px;font-size:11px;color:#5f5f68" class="mono">Inbox — 3 unread</span>
-            </div>
-            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:11px">
-              <div style="height:9px;width:62%;border-radius:5px;background:rgba(255,255,255,.14)"></div>
-              <div style="height:8px;width:88%;border-radius:5px;background:rgba(255,255,255,.07)"></div>
-              <div style="height:8px;width:80%;border-radius:5px;background:rgba(255,255,255,.07)"></div>
-              <div style="height:8px;width:70%;border-radius:5px;background:rgba(255,255,255,.07)"></div>
-              <div style="height:30px;width:42%;border-radius:7px;background:color-mix(in srgb, var(--accent) 22%, transparent);margin-top:4px"></div>
-            </div>
-          </div>
-          <div style="position:absolute;top:14px;left:50%;animation:keyTap 5.5s infinite;z-index:5">
-            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;background:rgba(16,16,20,.9);border:1px solid rgba(255,255,255,.14);font-size:12px;color:#e8e8ee;box-shadow:0 8px 24px rgba(0,0,0,.4)" class="mono">⌘ ⇧ 7</span>
-          </div>
-          <div style="position:absolute;left:62px;top:58px;border:1.5px solid var(--accent);background:color-mix(in srgb, var(--accent) 7%, transparent);box-shadow:0 0 0 1600px rgba(5,5,7,.6);animation:capSel 5.5s infinite;z-index:4">
-            <span style="position:absolute;top:-4px;left:-4px;width:7px;height:7px;background:var(--accent)"></span>
-            <span style="position:absolute;top:-4px;right:-4px;width:7px;height:7px;background:var(--accent)"></span>
-            <span style="position:absolute;bottom:-4px;left:-4px;width:7px;height:7px;background:var(--accent)"></span>
-            <span style="position:absolute;bottom:-4px;right:-4px;width:7px;height:7px;background:var(--accent)"></span>
-            <span style="position:absolute;bottom:-24px;right:0;font-size:11px;color:#fff;background:var(--accent);padding:2px 7px;border-radius:5px" class="mono">300 × 170</span>
-          </div>
-          <div style="position:absolute;left:50%;bottom:16px;animation:toastPop 5.5s infinite;z-index:6">
-            <span style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;background:rgba(16,16,20,.94);border:1px solid rgba(255,255,255,.1);font-size:12.5px;color:#e8e8ee" class="mono">
-              <span style="color:#28c840">✓</span> Copied to clipboard
-            </span>
-          </div>
-        </div>
-        <p style="margin:12px 2px 0;font-size:12px;color:#5f5f68;text-align:center" class="mono">live preview — capture → select → copy</p>
-      </div>
-    </div>
-  </header>
+<div id="root">
 
-  <!-- FEATURES -->
-  <section id="features" style="position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
-    <div data-reveal style="margin-bottom:34px">
-      <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">Features</p>
-      <h2 style="margin:10px 0 0;font-size:34px;letter-spacing:-.02em;font-weight:650">Everything in the capture bar</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
-      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
-        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"></circle></svg>
+  <!-- NAV: full-width bar -->
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <div class="container nav__inner">
+        <a class="lockup" href="#top" aria-label="Captura, back to top">
+          <span class="lockup__mark">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
+          </span>
+          <span class="lockup__name">Captura</span>
+        </a>
+        <div class="nav__links">
+          <a href="#how">How it works</a>
+          <a href="#playground">Playground</a>
+          <a href="#ocr">OCR</a>
         </div>
-        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Instant capture</h3>
-        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Global hotkey, frozen dimmed screen, drag to select with live dimensions.</p>
+        <a class="btn btn--primary" href="#download">Download</a>
       </div>
-      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
-        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M9 4v16M15 4v16M4 9h16M4 15h16"></path></svg>
-        </div>
-        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Adjustable frame</h3>
-        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Resize or move the capture frame before you copy. Nothing is final early.</p>
-      </div>
-      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
-        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l4 4"></path><path d="M4 20l4-1 9.5-9.5a2.1 2.1 0 0 0-3-3L5 16l-1 4z"></path></svg>
-        </div>
-        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Annotate</h3>
-        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Pen, arrow, shapes, text, highlighter — with undo/redo and a color palette.</p>
-      </div>
-      <div data-reveal class="card" style="position:relative;padding:22px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07);transition:transform .25s ease,border-color .25s ease,background .25s ease" data-hover="transform:translateY(-4px);border-color:color-mix(in srgb, var(--accent) 50%, transparent);background:#131318">
-        <div style="display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);margin-bottom:16px;font-size:13px;font-weight:700" class="mono">OCR</div>
-        <h3 style="margin:0 0 7px;font-size:17px;font-weight:620">Local OCR</h3>
-        <p style="margin:0;font-size:14px;line-height:1.55;color:#8c8c94">Extract text from any region, fully on-device. Nothing leaves your device.</p>
-      </div>
-    </div>
-  </section>
+    </nav>
+  </div>
 
-  <!-- HOW IT WORKS -->
-  <section id="how" style="position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);background:#0b0b0e">
-    <div style="max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
-      <div data-reveal style="margin-bottom:40px">
-        <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">How it works</p>
-        <h2 style="margin:10px 0 0;font-size:34px;letter-spacing:-.02em;font-weight:650">From keypress to clipboard in seconds</h2>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px">
-        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
-          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">1</div>
-          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Press the hotkey</h3>
-          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">A global shortcut (configurable) freezes and dims the screen, ready to capture.</p>
-          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">⌘ ⇧ 7</span>
-        </div>
-        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
-          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">2</div>
-          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Drag to select</h3>
-          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">Pull out any region with live pixel dimensions. Resize or move before you commit.</p>
-          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">812 × 488</span>
-        </div>
-        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
-          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">3</div>
-          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Annotate (optional)</h3>
-          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">Pen, arrow, shapes, text, highlighter — undo/redo and a color palette.</p>
-          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">✎ markup</span>
-        </div>
-        <div data-reveal style="padding:24px;border-radius:14px;background:#101013;border:1px solid rgba(255,255,255,.07)">
-          <div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);color:var(--accent);font-size:14px;font-weight:700" class="mono">4</div>
-          <h3 style="margin:16px 0 7px;font-size:16px;font-weight:620">Copy or extract</h3>
-          <p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;color:#8c8c94">Copy the image, or run local OCR to grab the text. Done.</p>
-          <span style="display:inline-block;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#cfcfd6" class="mono">⌘ C / OCR</span>
-        </div>
-      </div>
-    </div>
-  </section>
+  <main id="main">
 
-  <!-- PLAYGROUND -->
-  <section id="playground" style="position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
-    <div data-reveal style="margin-bottom:28px;max-width:620px">
-      <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">Try it</p>
-      <h2 style="margin:10px 0 10px;font-size:34px;letter-spacing:-.02em;font-weight:650">The annotation tools, right here</h2>
-      <p style="margin:0;font-size:16px;line-height:1.55;color:#9a9aa2">Pick a tool and a color, then draw on the canvas below — the same overlay you get after a capture.</p>
-    </div>
-    <div data-reveal style="border-radius:16px;background:#0e0e12;border:1px solid rgba(255,255,255,.08);overflow:hidden">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);background:#101015">
-        <div style="display:flex;gap:6px">
-          <button class="tool" data-tool="pen" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l4 4"></path><path d="M4 20l4-1 9.5-9.5a2.1 2.1 0 0 0-3-3L5 16l-1 4z"></path></svg>Pen</button>
-          <button class="tool" data-tool="arrow" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg>Arrow</button>
-          <button class="tool" data-tool="rect" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1.5"></rect></svg>Box</button>
-          <button class="tool" data-tool="marker" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v4h4l4-4"></path><path d="M13 7l4 4 3-3a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0z"></path></svg>Marker</button>
-        </div>
-        <div style="width:1px;height:24px;background:rgba(255,255,255,.1)"></div>
-        <div style="display:flex;align-items:center;gap:9px">
-          <button class="swatch" data-color="#f4f4f6" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#f4f4f6"></button>
-          <button class="swatch" data-color="#4f7dff" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#4f7dff"></button>
-          <button class="swatch" data-color="#ff5c5c" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#ff5c5c"></button>
-          <button class="swatch" data-color="#ffd23f" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#ffd23f"></button>
-          <button class="swatch" data-color="#38d39f" style="width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;background:#38d39f"></button>
-        </div>
-        <div style="flex:1"></div>
-        <div style="display:flex;gap:6px">
-          <button id="pg-undo" style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer" data-hover="border-color:rgba(255,255,255,.2);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-1"></path></svg>Undo</button>
-          <button id="pg-clear" style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:#161619;color:#cfcfd6;font-size:13px;cursor:pointer" data-hover="border-color:rgba(255,92,92,.5);color:#ff8a8a">Clear</button>
-        </div>
-      </div>
-      <div id="cvwrap" style="position:relative;height:380px;background:repeating-linear-gradient(135deg,#0c0c10 0 12px,#0e0e13 12px 24px)">
-        <div style="position:absolute;inset:14px;border-radius:10px;border:1px dashed rgba(255,255,255,.07)"></div>
-        <div id="pg-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-          <span style="font-size:13px;color:#52525a" class="mono">draw anywhere on this canvas</span>
-        </div>
-        <canvas id="cv" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair"></canvas>
-      </div>
-    </div>
-  </section>
-
-  <!-- OCR -->
-  <section id="ocr" style="position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.05);background:#0b0b0e">
-    <div style="max-width:1120px;margin:0 auto;padding:80px 24px;scroll-margin-top:84px">
-      <div data-reveal style="margin-bottom:30px;max-width:620px">
-        <p style="margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)" class="mono">Local OCR</p>
-        <h2 style="margin:10px 0 10px;font-size:34px;letter-spacing:-.02em;font-weight:650">Watch it lift text off the screen</h2>
-        <p style="margin:0;font-size:16px;line-height:1.55;color:#9a9aa2">Run the recognizer on this captured region. Everything happens on-device — hit <em style="color:#cfcfd6;font-style:normal">Extract text</em>.</p>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;align-items:stretch">
-        <div data-reveal style="position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:#111116">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid rgba(255,255,255,.06)">
-            <span style="font-size:11.5px;color:#6f6f78" class="mono">captured.png · 640×360</span>
-            <span style="width:7px;height:7px;border-radius:50%;background:var(--accent)"></span>
-          </div>
-          <div style="position:relative;padding:30px 26px;user-select:none;background:repeating-linear-gradient(135deg,#0e0e13 0 14px,#101016 14px 28px)">
-            <div class="mono" style="color:#d6d6dd;line-height:1.9;font-size:15px">
-              <div style="font-size:18px;color:#fff;font-weight:600;margin-bottom:6px">Captura — local OCR</div>
-              <div>Recognized fully on-device.</div>
-              <div>No network, no uploads.</div>
-              <div style="color:#9a9aa2">Your text never leaves the machine.</div>
-            </div>
-            <div id="ocr-scan" style="display:none;position:absolute;left:0;right:0;height:42px;top:-2%;background:linear-gradient(180deg,transparent,color-mix(in srgb, var(--accent) 30%, transparent),transparent);border-top:1.5px solid var(--accent);border-bottom:1.5px solid var(--accent);animation:scanMove 1.1s linear infinite"></div>
-          </div>
-        </div>
-        <div data-reveal style="display:flex;flex-direction:column;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#101013;overflow:hidden">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
-            <span style="font-size:14px;font-weight:600">Extracted text</span>
-            <span id="ocr-count" style="font-size:11.5px;color:#6f6f78" class="mono">0 chars</span>
-          </div>
-          <div style="flex:1;padding:18px;min-height:150px">
-            <span id="ocr-idle" style="font-size:13.5px;color:#52525a" class="mono">Output appears here after extraction…</span>
-            <pre id="ocr-pre" style="margin:0;white-space:pre-wrap;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;line-height:1.85;color:#e6e6ec"></pre>
-          </div>
-          <div style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.06)">
-            <button id="ocr-run" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 8px 22px color-mix(in srgb, var(--accent) 35%, transparent)" data-hover="filter:brightness(1.08)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></svg>Extract text</button>
-            <span id="ocr-loading" style="display:none;align-items:center;gap:9px;padding:11px 18px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#cfcfd6;font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></span>Scanning region…</span>
-            <div id="ocr-actions" style="display:none;gap:9px">
-              <button id="ocr-copy" style="display:inline-flex;align-items:center;gap:7px;padding:11px 16px;border-radius:10px;border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);background:color-mix(in srgb, var(--accent) 14%, transparent);color:#dfe3ff;font-size:14px;font-weight:600;cursor:pointer" data-hover="filter:brightness(1.1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg><span id="ocr-copy-label">Copy</span></button>
-              <button id="ocr-reset" style="display:inline-flex;align-items:center;gap:7px;padding:11px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#161619;color:#cfcfd6;font-size:14px;cursor:pointer" data-hover="color:#fff;border-color:rgba(255,255,255,.2)">Reset</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA -->
-  <section id="download" style="position:relative;z-index:1;scroll-margin-top:84px">
-    <div style="max-width:1120px;margin:0 auto;padding:40px 24px 96px">
-      <div data-reveal style="position:relative;overflow:hidden;border-radius:20px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,#121219,#0b0b0f);padding:64px 32px;text-align:center">
-        <div style="position:absolute;top:-160px;left:50%;transform:translateX(-50%);width:700px;height:360px;background:radial-gradient(50% 60% at 50% 30%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%);filter:blur(30px);pointer-events:none"></div>
-        <div style="position:relative">
-          <h2 style="margin:0;font-size:40px;letter-spacing:-.025em;font-weight:680;background:linear-gradient(180deg,#fff,#c8c8d0);-webkit-background-clip:text;background-clip:text;color:transparent">Make your next screenshot smarter</h2>
-          <p style="margin:16px auto 0;font-size:17px;color:#9a9aa2;max-width:440px">Free and open source, for macOS, Windows, and Linux.</p>
-          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px;margin-top:30px">
-            <a id="dl-cta" href="#top" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-size:15px;font-weight:600;color:#fff;padding:14px 24px;border-radius:12px;background:var(--accent);box-shadow:0 12px 34px color-mix(in srgb, var(--accent) 40%, transparent)" data-hover="transform:translateY(-1px);filter:brightness(1.07)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M5 21h14"></path></svg><span id="dl-cta-label">Download for macOS</span>
+    <!-- HERO: stage -->
+    <header id="top" class="hero">
+      <div class="container hero__grid">
+        <div>
+          <h1>Snap it.<br>Mark it.<br>Pull the text.</h1>
+          <p class="lead">Press a key, drag, annotate, copy. Built-in OCR reads any region.</p>
+          <div class="hero__actions">
+            <a id="dl-hero" class="btn btn--primary btn--lg" href="#download">
+              <svg class="ic ic--down" aria-hidden="true"><use href="#i-download"/></svg>
+              <span id="dl-hero-label">Download for macOS</span>
             </a>
-            <a id="gh-cta" href="#top" style="text-decoration:none;font-size:14.5px;color:#b9b9c0;border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:2px" data-hover="color:#fff">View on GitHub →</a>
+            <a id="gh-hero" class="link" href="#download">See all downloads</a>
           </div>
-          <p id="dl-note" style="margin:18px 0 0;font-size:12.5px;color:#6f6f78" class="mono"></p>
+          <p class="fine"><span id="ver-pill">Free and open source</span> screenshot tool for macOS, Windows and Linux.</p>
+        </div>
 
-          <!-- First-launch help: unsigned app, so macOS/Windows warn once -->
-          <div style="max-width:760px;margin:40px auto 0;text-align:left;display:flex;flex-wrap:wrap;gap:16px">
-            <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.02);padding:20px 22px">
-              <div style="display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:#f4f4f6">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"></path><path d="M8.5 16.4a5 5 0 0 1 7 0"></path><path d="M5 12.86a10 10 0 0 1 14 0"></path></svg>
-                Opening on macOS
-              </div>
-              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">macOS blocks unsigned apps once. After downloading:</p>
-              <ol style="margin:10px 0 0;padding-left:18px;font-size:13px;color:#9a9aa2;line-height:1.7">
-                <li>Open Captura, then click <strong style="color:#cdcdd4">Done</strong> on the warning.</li>
-                <li>Go to <strong style="color:#cdcdd4">System Settings → Privacy &amp; Security</strong>, scroll to <strong style="color:#cdcdd4">Security</strong>, and click <strong style="color:#cdcdd4">Open Anyway</strong>.</li>
-              </ol>
-              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">Or run this once in Terminal:</p>
-              <code class="mono" style="display:block;margin-top:7px;padding:9px 11px;border-radius:8px;background:#0c0c11;border:1px solid rgba(255,255,255,.08);font-size:12px;color:#b9b9c0;word-break:break-all">xattr -dr com.apple.quarantine /Applications/Captura.app</code>
+        <!-- the capture overlay, built at full fidelity; a real screenshot replaces it through hallmarkSlots({ hero: 'file.png' }) -->
+        <figure class="demo" data-slot="hero" data-kind="product" data-alt="The Captura capture overlay: a selection frame drawn around three release notes, the annotation toolbar under it, and a copied-to-clipboard confirmation">
+          <svg id="demo" viewBox="0 0 640 480" role="img" aria-label="The Captura capture overlay. A selection frame is dragged around three release notes, a box and an arrow annotate one of them, the toolbar sits under the frame, and a Copied to clipboard confirmation appears.">
+            <rect class="sv-screen" width="640" height="480"/>
+            <text class="sv-title" x="48" y="64">Changelog</text>
+            <text class="sv-line" x="72" y="156">1.1.4 &#160;Hotkey uses RegisterEventHotKey</text>
+            <text class="sv-line" x="72" y="194">1.1.3 &#160;Version shown in the app</text>
+            <text class="sv-line" x="72" y="232">1.1.2 &#160;Fixes the macOS 27 tray crash</text>
+            <text class="sv-line sv-line--quiet" x="72" y="372">1.1.1 &#160;Pillow security bump, download stats</text>
+            <text class="sv-line sv-line--quiet" x="72" y="410">1.1.0 &#160;Self-healing hotkey, Esc closes panels</text>
+            <path id="d-dim" class="sv-dim" d="M0 0H640V480H0Z M48 118H548V258H48Z" style="opacity:.72"/>
+            <rect id="d-frame" class="sv-frame" x="48" y="118" width="500" height="140"/>
+            <g id="d-handles">
+              <rect class="sv-handle" x="44" y="114" width="8" height="8"/><rect class="sv-handle" x="294" y="114" width="8" height="8"/><rect class="sv-handle" x="544" y="114" width="8" height="8"/>
+              <rect class="sv-handle" x="44" y="184" width="8" height="8"/><rect class="sv-handle" x="544" y="184" width="8" height="8"/>
+              <rect class="sv-handle" x="44" y="254" width="8" height="8"/><rect class="sv-handle" x="294" y="254" width="8" height="8"/><rect class="sv-handle" x="544" y="254" width="8" height="8"/>
+            </g>
+            <g id="d-tag" transform="translate(48 86)"><rect class="sv-tag" width="96" height="24" rx="4"/><text id="d-tag-t" class="sv-tag-t" x="48" y="16.5" text-anchor="middle">800 × 224</text></g>
+            <g id="d-ann">
+              <path id="d-box" class="sv-mark" d="M146 138h366v26h-366z"/>
+              <path id="d-arw" class="sv-mark" d="M536 240L510 172"/>
+              <path id="d-head" class="sv-mark" d="M508 188L510 172L522 182.5"/>
+            </g>
+            <g id="d-tb" transform="translate(48 276)">
+              <rect class="sv-bar" width="500" height="44" rx="8"/>
+              <rect class="sv-on" x="102" y="8" width="28" height="28" rx="5"/>
+              <use class="sv-ic" href="#i-select" x="16" y="12" width="20" height="20"/><use class="sv-ic" href="#i-pen" x="46" y="12" width="20" height="20"/><use class="sv-ic" href="#i-line" x="76" y="12" width="20" height="20"/><use class="sv-ic sv-ic--on" href="#i-arrow" x="106" y="12" width="20" height="20"/><use class="sv-ic" href="#i-rect" x="136" y="12" width="20" height="20"/><use class="sv-ic" href="#i-ellipse" x="166" y="12" width="20" height="20"/><use class="sv-ic" href="#i-text" x="196" y="12" width="20" height="20"/><use class="sv-ic" href="#i-highlighter" x="226" y="12" width="20" height="20"/>
+              <line class="sv-sep" x1="258" y1="12" x2="258" y2="32"/>
+              <use class="sv-ic" href="#i-undo" x="270" y="12" width="20" height="20"/><use class="sv-ic" href="#i-redo" x="300" y="12" width="20" height="20"/>
+              <line class="sv-sep" x1="332" y1="12" x2="332" y2="32"/>
+              <use class="sv-ic" href="#i-ocr" x="344" y="12" width="20" height="20"/><use class="sv-ic" href="#i-save" x="374" y="12" width="20" height="20"/><use class="sv-ic" href="#i-copy" x="404" y="12" width="20" height="20"/>
+              <line class="sv-sep" x1="436" y1="12" x2="436" y2="32"/>
+              <use class="sv-ic" href="#i-close" x="448" y="12" width="20" height="20"/>
+            </g>
+            <g id="d-toast" transform="translate(320 446)"><rect class="sv-toast" x="-112" y="-18" width="224" height="36" rx="6"/><use class="sv-ic sv-ok" href="#i-check" x="-94" y="-8" width="16" height="16"/><text class="sv-toast-t" x="-68" y="5.5">Copied to clipboard</text></g>
+            <g id="d-key" transform="translate(320 40)" style="opacity:0"><rect class="sv-key" x="-54" y="-19" width="108" height="38" rx="6"/><text class="sv-key-t" y="6" text-anchor="middle">⌘ ⇧ 7</text></g>
+          </svg>
+        </figure>
+      </div>
+    </header>
+
+    <!-- THE ROUTE: keypress to clipboard -->
+    <section id="how" class="section section--s">
+      <div class="container">
+        <div id="features" class="head">
+          <h2>From keypress to clipboard in seconds</h2>
+        </div>
+        <div class="route" data-route>
+          <div class="route__rail" aria-hidden="true">
+            <span class="route__line"></span><span class="route__tip"></span>
+            <span class="route__port">1</span><span class="route__port">2</span><span class="route__port">3</span><span class="route__port">4</span>
+          </div>
+          <div class="route__frame reticle">
+            <i class="tl" aria-hidden="true"></i><i class="tr" aria-hidden="true"></i><i class="bl" aria-hidden="true"></i><i class="br" aria-hidden="true"></i>
+          <ol class="route__panels">
+            <li>
+              <p class="reading"><span aria-hidden="true">⌘ ⇧ 7</span><span class="visually-hidden">Command, Shift, 7</span></p>
+              <h3>Press the hotkey</h3>
+              <p>A configurable global shortcut freezes and dims the screen.</p>
+            </li>
+            <li>
+              <p class="reading"><span aria-hidden="true">812 × 488</span><span class="visually-hidden">812 by 488 pixels</span></p>
+              <h3>Drag to select</h3>
+              <p>Pull out any region with live dimensions. Resize or move it before you commit.</p>
+            </li>
+            <li>
+              <p class="reading reading--tools" aria-hidden="true">
+                <svg class="ic"><use href="#i-pen"/></svg><svg class="ic"><use href="#i-arrow"/></svg><svg class="ic"><use href="#i-rect"/></svg><svg class="ic"><use href="#i-text"/></svg><svg class="ic"><use href="#i-highlighter"/></svg>
+              </p>
+              <h3>Annotate (optional)</h3>
+              <p>Pen, arrow, shapes, text, highlighter, with undo, redo and a color palette.</p>
+            </li>
+            <li>
+              <p class="reading"><span aria-hidden="true">⌘ C / OCR</span><span class="visually-hidden">Command C, or O C R</span></p>
+              <h3>Copy or extract</h3>
+              <p>Copy the image, or run OCR on it. Nothing leaves your device.</p>
+            </li>
+          </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAYGROUND -->
+    <section id="playground" class="section">
+      <div class="container">
+        <div class="head">
+          <h2>The annotation tools, right here</h2>
+          <p class="lead">Pick a tool and a color, then draw. It is the same overlay you get after a capture.</p>
+        </div>
+        <div class="stage">
+          <div class="stage__bar">
+            <div class="stage__group" role="group" aria-label="Tool">
+              <button class="btn tool" type="button" data-tool="pen" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg>Pen</button>
+              <button class="btn tool" type="button" data-tool="arrow" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg>Arrow</button>
+              <button class="btn tool" type="button" data-tool="rect" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-rect"/></svg>Box</button>
+              <button class="btn tool" type="button" data-tool="marker" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-highlighter"/></svg>Marker</button>
             </div>
-            <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.02);padding:20px 22px">
-              <div style="display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:#f4f4f6">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="5" rx="2"></rect><path d="M3 10h18"></path></svg>
-                Opening on Windows
-              </div>
-              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">SmartScreen warns once for unsigned installers:</p>
-              <ol style="margin:10px 0 0;padding-left:18px;font-size:13px;color:#9a9aa2;line-height:1.7">
-                <li>Run the installer. If you see <em style="color:#cdcdd4">"Windows protected your PC"</em>, click <strong style="color:#cdcdd4">More info</strong>.</li>
-                <li>Click <strong style="color:#cdcdd4">Run anyway</strong> to continue.</li>
-              </ol>
-              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">These warnings appear because the app is open-source and unsigned — not because anything's wrong. Every download lists a SHA-256 checksum you can verify.</p>
+            <div class="swatches" role="group" aria-label="Color">
+              <button class="swatch" type="button" data-color="swatch-1" aria-label="White" aria-pressed="false"></button>
+              <button class="swatch" type="button" data-color="swatch-2" aria-label="Blue" aria-pressed="false"></button>
+              <button class="swatch" type="button" data-color="swatch-3" aria-label="Red" aria-pressed="false"></button>
+              <button class="swatch" type="button" data-color="swatch-4" aria-label="Yellow" aria-pressed="false"></button>
+              <button class="swatch" type="button" data-color="swatch-5" aria-label="Green" aria-pressed="false"></button>
             </div>
-            <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.02);padding:20px 22px">
-              <div style="display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:#f4f4f6">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                macOS permissions
+            <span class="stage__spacer"></span>
+            <div class="stage__group">
+              <button id="pg-undo" class="btn" type="button"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg>Undo</button>
+              <button id="pg-clear" class="btn" type="button">Clear</button>
+            </div>
+          </div>
+          <div id="cvwrap" class="canvas-wrap reticle">
+            <i class="tl" aria-hidden="true"></i><i class="tr" aria-hidden="true"></i><i class="bl" aria-hidden="true"></i><i class="br" aria-hidden="true"></i>
+            <canvas id="cv" aria-label="Drawing canvas for trying the annotation tools"></canvas>
+            <p id="pg-hint" class="canvas-hint">Draw anywhere on this canvas.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OCR -->
+    <section id="ocr" class="section section--s">
+      <div class="container">
+        <div class="head">
+          <h2>Watch it lift text off the screen</h2>
+          <p class="lead">Run the recognizer on this captured region. Everything happens on-device. Hit <strong>Extract text</strong>.</p>
+        </div>
+        <div class="ocr">
+          <figure>
+            <figcaption class="ocr__head"><b class="measured">captured.png</b><span class="measured">640 × 360</span></figcaption>
+            <div class="ocr__shot reticle">
+              <i class="tl" aria-hidden="true"></i><i class="tr" aria-hidden="true"></i><i class="bl" aria-hidden="true"></i><i class="br" aria-hidden="true"></i>
+              <p class="ocr__text"><b>Captura: local OCR</b>Recognized fully on-device.<br>No network, no uploads.<span>Your text never leaves the machine.</span></p>
+              <div id="ocr-scan" class="scan" hidden aria-hidden="true"></div>
+            </div>
+          </figure>
+          <div>
+            <div class="ocr__head"><b>Extracted text</b><span id="ocr-count" class="measured">0 chars</span></div>
+            <div class="ocr__out">
+              <span id="ocr-idle" class="ocr__idle">Output appears here after extraction.</span>
+              <pre id="ocr-pre" aria-live="polite"></pre>
+            </div>
+            <div class="ocr__foot">
+              <button id="ocr-run" class="btn btn--primary" type="button"><svg class="ic" aria-hidden="true"><use href="#i-ocr"/></svg>Extract text</button>
+              <span id="ocr-loading" class="btn" role="status" hidden><span class="spinner" aria-hidden="true"></span>Scanning region…</span>
+              <div id="ocr-actions" hidden>
+                <button id="ocr-copy" class="btn btn--primary" type="button"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span id="ocr-copy-label">Copy</span></button>
+                <button id="ocr-reset" class="btn" type="button">Reset</button>
               </div>
-              <p style="margin:12px 0 0;font-size:13px;color:#9a9aa2;line-height:1.65">Grant one thing under <strong style="color:#cdcdd4">System Settings → Privacy &amp; Security</strong>:</p>
-              <ul style="margin:10px 0 0;padding-left:18px;font-size:13px;color:#9a9aa2;line-height:1.7">
-                <li><strong style="color:#cdcdd4">Screen Recording</strong> — required, to capture pixels. Prompted on first capture.</li>
-              </ul>
-              <p style="margin:12px 0 0;font-size:12.5px;color:#85858d;line-height:1.6">That's the only permission Captura needs. The global hotkey uses macOS's built-in shortcut registration, so it needs no Input Monitoring or Accessibility and keeps working even when another app has Secure Keyboard Entry on. The <strong style="color:#cdcdd4">tray → Permissions…</strong> window shows the grant state.</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- FOOTER -->
-  <footer style="position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.06);padding:36px 24px">
-    <div style="max-width:1120px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="display:flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:8px;background:#141418;border:1px solid rgba(255,255,255,.08);color:var(--accent)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
+    <!-- DOWNLOAD: band -->
+    <section id="download" class="band section section--s">
+      <div class="container get">
+        <div>
+          <h2>Make your next screenshot smarter</h2>
+          <p class="lead">Free and open source, for macOS, Windows, and Linux.</p>
+        </div>
+        <div>
+          <div class="get__actions">
+            <a id="dl-cta" class="btn btn--primary btn--lg" href="#top">
+              <svg class="ic ic--down" aria-hidden="true"><use href="#i-download"/></svg><span id="dl-cta-label">Download for macOS</span>
+            </a>
+            <a id="gh-cta" class="link" href="#top">View on GitHub</a>
+          </div>
+          <p id="dl-note" class="get__note measured"></p>
+        </div>
+      </div>
+      <div class="container help" role="group" aria-label="First launch">
+        <div class="help__tabs" role="tablist" aria-label="First launch help" hidden>
+          <button class="btn" type="button" role="tab" id="tab-macos" aria-controls="help-macos" aria-selected="true">Opening on macOS</button>
+          <button class="btn" type="button" role="tab" id="tab-windows" aria-controls="help-windows" aria-selected="false" tabindex="-1">Opening on Windows</button>
+          <button class="btn" type="button" role="tab" id="tab-perms" aria-controls="help-perms" aria-selected="false" tabindex="-1">macOS permissions</button>
+        </div>
+
+        <div class="help__stage">
+        <div class="help__panel reticle" id="help-macos" role="tabpanel" aria-labelledby="tab-macos">
+          <i class="tl" aria-hidden="true"></i><i class="tr" aria-hidden="true"></i><i class="bl" aria-hidden="true"></i><i class="br" aria-hidden="true"></i>
+          <h3>Opening on macOS</h3>
+          <div class="help__body">
+            <p>macOS blocks unsigned apps once. After downloading:</p>
+            <ol>
+              <li>Open Captura, then click <strong>Done</strong> on the warning.</li>
+              <li>Open <strong>System Settings</strong>, go to <strong>Privacy &amp; Security</strong>, scroll to <strong>Security</strong> and click <strong>Open Anyway</strong>.</li>
+            </ol>
+            <p>Or run this once in Terminal:</p>
+            <code class="code">xattr -dr com.apple.quarantine /Applications/Captura.app</code>
+          </div>
+        </div>
+
+        <div class="help__panel reticle" id="help-windows" role="tabpanel" aria-labelledby="tab-windows">
+          <i class="tl" aria-hidden="true"></i><i class="tr" aria-hidden="true"></i><i class="bl" aria-hidden="true"></i><i class="br" aria-hidden="true"></i>
+          <h3>Opening on Windows</h3>
+          <div class="help__body">
+            <p>SmartScreen warns once for unsigned installers:</p>
+            <ol>
+              <li>Run the installer. If you see “Windows protected your PC”, click <strong>More info</strong>.</li>
+              <li>Click <strong>Run anyway</strong> to continue.</li>
+            </ol>
+            <small>These warnings appear because the app is open source and unsigned, not because anything is wrong. Every download lists a SHA-256 checksum you can verify.</small>
+          </div>
+        </div>
+
+        <div class="help__panel reticle" id="help-perms" role="tabpanel" aria-labelledby="tab-perms">
+          <i class="tl" aria-hidden="true"></i><i class="tr" aria-hidden="true"></i><i class="bl" aria-hidden="true"></i><i class="br" aria-hidden="true"></i>
+          <h3>macOS permissions</h3>
+          <div class="help__body">
+            <p>Grant one permission under <strong>System Settings</strong>, <strong>Privacy &amp; Security</strong>: <strong>Screen Recording</strong>, required to capture pixels. It is prompted on first capture.</p>
+            <small>That is the only permission Captura needs. The global hotkey uses macOS’s built-in shortcut registration, so it needs no Input Monitoring or Accessibility and keeps working even when another app has Secure Keyboard Entry on. The Permissions window in the tray menu shows the grant state.</small>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER: colophon block -->
+  <footer class="colophon">
+    <div class="container colophon__grid">
+      <div class="colophon__id">
+        <span class="lockup__mark">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
         </span>
-        <span style="font-size:14px;color:#9a9aa2">© 2026 catzuudon · <a href="https://github.com/catzuudon/captura/blob/main/LICENSE" style="color:#9a9aa2" data-hover="color:#f4f4f6">MIT&nbsp;License</a></span>
+        <span>© 2026 catzuudon, <a class="link" href="https://github.com/catzuudon/captura/blob/main/LICENSE">MIT&nbsp;License</a></span>
       </div>
-      <div style="display:flex;gap:20px">
-        <a href="#features" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">Features</a>
-        <a href="#download" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">Download</a>
-        <a href="#ocr" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">OCR</a>
-        <a id="gh-footer" href="#" style="text-decoration:none;color:#85858d;font-size:13.5px" data-hover="color:#f4f4f6">GitHub</a>
-      </div>
+      <nav class="colophon__links" aria-label="Footer">
+        <a href="#how">How it works</a>
+        <a href="#download">Download</a>
+        <a href="#ocr">OCR</a>
+        <a id="gh-footer" href="#">GitHub</a>
+      </nav>
     </div>
   </footer>
 
 </div>
 
+<script>window.hallmarkSlots = (m) => { for (const [k, v] of Object.entries(m)) { const s = document.querySelector(`[data-slot="${k}"]`); if (!s) continue; const im = new Image(); im.src = typeof v === 'string' ? v : v.src; im.alt = (typeof v === 'object' && v.alt) || s.dataset.alt || ''; s.querySelectorAll(':scope > img').forEach((o) => o.remove()); s.prepend(im); } };
+document.querySelectorAll('[data-slot] img').forEach((i) => { if (i.complete && !i.naturalWidth) i.remove(); else i.addEventListener('error', () => i.remove(), { once: true }); });</script>
+
+<!-- anime.js 4.5.0 (MIT), vendored so the page makes no third-party requests -->
+<script src="vendor/anime.umd.min.js"></script>
 <script>
-/* ===== Captura landing — set this to your GitHub "user/repo" ===== */
+/* ===== Captura landing: set this to your GitHub "user/repo" ===== */
 var REPO = "catzuudon/captura";
 
 (function () {
   "use strict";
 
-  /* hover styles (data-hover appended on enter, removed on leave) */
-  document.querySelectorAll("[data-hover]").forEach(function (el) {
-    var base = el.getAttribute("style") || "";
-    var hov = el.getAttribute("data-hover");
-    el.addEventListener("mouseenter", function () { el.setAttribute("style", base + ";" + hov); });
-    el.addEventListener("mouseleave", function () { el.setAttribute("style", base); });
-  });
+  var A = window.anime;                                   /* the page still works if this is missing */
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var motion = !!A && !reduce;
+  var root = document.documentElement;
+  var q = function (s, r) { return (r || document).querySelector(s); };
+  var qa = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+  var sy = function () { return window.pageYOffset || root.scrollTop || 0; };
+  var ready = false;
+  if (motion) root.classList.add("motion");
 
-  /* scroll reveal */
-  var reveals = document.querySelectorAll("[data-reveal]");
-  if ("IntersectionObserver" in window) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.add("shown"); io.unobserve(e.target); }
+  /* anything goes wrong in the motion layer: show the plain page */
+  function fail(e) {
+    root.classList.remove("motion");
+    qa("[data-in]").forEach(function (el) { el.removeAttribute("data-in"); el.style.opacity = ""; });
+    qa(".w > span").forEach(function (s) { s.style.transform = "none"; });
+    qa(".nav").forEach(function (n) { n.style.opacity = ""; });
+    if (window.console) console.warn("Captura motion off:", e);
+  }
+
+  /* one rAF-throttled scroll frame feeds everything that follows the scroll */
+  var hooks = [], queued = false;
+  window.addEventListener("scroll", function () {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(function () { queued = false; hooks.forEach(function (fn) { fn(); }); });
+  }, { passive: true });
+
+  /* the nav stays put on top and only shows where you are (works under reduced motion too) */
+  (function () {
+    var links = qa(".nav__links a"), cur = "none";
+    function spy() {
+      var line = window.innerHeight * 0.4, id = null;
+      ["how", "playground", "ocr", "download"].forEach(function (s) {
+        var el = document.getElementById(s);
+        if (el && el.getBoundingClientRect().top <= line) id = s;
       });
-    }, { threshold: 0.12, rootMargin: "0px 0px -7% 0px" });
-    reveals.forEach(function (el) { io.observe(el); });
-  } else {
-    reveals.forEach(function (el) { el.classList.add("shown"); });
+      if (id === cur) return;
+      cur = id;
+      links.forEach(function (l) { if (l.getAttribute("href") === "#" + id) l.setAttribute("aria-current", "true"); else l.removeAttribute("aria-current"); });
+    }
+    hooks.push(spy); spy();
+  })();
+
+  /* ---------- small motion helpers ---------- */
+  function splitWords(el) {                               /* words in clipped lines that rise; the heading keeps its text for assistive tech */
+    el.setAttribute("aria-label", el.textContent.replace(/\s+/g, " ").trim());
+    var out = [];
+    (function walk(node) {
+      [].slice.call(node.childNodes).forEach(function (n) {
+        if (n.nodeType === 3) {
+          var frag = document.createDocumentFragment();
+          n.textContent.split(/(\s+)/).forEach(function (p) {
+            if (!p) return;
+            if (/^\s+$/.test(p)) { frag.appendChild(document.createTextNode(p)); return; }
+            var w = document.createElement("span"), i = document.createElement("span");
+            w.className = "w"; w.setAttribute("aria-hidden", "true");
+            i.textContent = p; w.appendChild(i); frag.appendChild(w); out.push(i);
+          });
+          node.replaceChild(frag, n);
+        } else if (n.nodeType === 1 && n.tagName !== "BR") walk(n);
+      });
+    })(el);
+    return out;
+  }
+  function fadeUp(el, delay, dy) {
+    A.animate(el, { opacity: [0, 1], translateY: [dy == null ? 16 : dy, 0], duration: 800, delay: delay || 0, ease: "outExpo" });
+  }
+  function focusIn(scope) {                               /* the viewfinder corners snap in, like a lens finding focus */
+    var from = { tl: [-10, -10], tr: [10, -10], bl: [-10, 10], br: [10, 10] };
+    var corners = qa(".reticle > i", scope);
+    if (scope.classList && scope.classList.contains("reticle")) corners = corners.concat(qa(":scope > i", scope));
+    corners.forEach(function (c, i) {
+      var f = from[c.className.split(" ")[0]] || [0, 0];
+      A.animate(c, { translateX: [f[0], 0], translateY: [f[1], 0], opacity: [0, 1], duration: 700, delay: 50 * (i % 4), ease: "outExpo" });
+    });
+  }
+  function decode(el, ms) {                               /* a reading resolves out of noise */
+    if (el._busy) return;
+    var f = el.getAttribute("data-final");
+    if (!f) { f = el.textContent; el.setAttribute("data-final", f); }
+    var pool = "0123456789#/<>+-×", P = { p: 0 };
+    el._busy = true;
+    A.animate(P, {
+      p: 1, duration: ms || 700, ease: "outCubic",
+      onUpdate: function () {
+        var n = Math.floor(P.p * f.length), s = "";
+        for (var i = 0; i < f.length; i++) s += (i < n || f[i] === " ") ? f[i] : pool.charAt(Math.floor(Math.random() * pool.length));
+        el.textContent = s;
+      },
+      onComplete: function () { el.textContent = f; el._busy = false; }
+    });
+  }
+
+  /* ---- hero: the capture overlay does its job once ---- */
+  (function () {
+    var svg = q("#demo"); if (!svg) return;
+    var narrow = window.matchMedia("(max-width: 40rem)");
+    var fit = function () { svg.setAttribute("viewBox", narrow.matches ? "24 70 576 270" : "0 0 640 480"); };
+    fit(); narrow.addEventListener("change", fit);
+    var X = 48, Y = 118, W = 500, H = 140;
+    var dim = q("#d-dim"), frame = q("#d-frame"), hs = qa("#d-handles rect"), handles = q("#d-handles");
+    var tag = q("#d-tag"), tagT = q("#d-tag-t"), tb = q("#d-tb"), key = q("#d-key"), toast = q("#d-toast");
+    var parts = [q("#d-box"), q("#d-arw"), q("#d-head")];
+    var lens = parts.map(function (p) { return p.getTotalLength(); });
+    var grid = [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [0, 2], [1, 2], [2, 2]];
+    var S = { key: 0, dim: 0, fw: 0, fh: 0, hs: 0, tb: 0, ann: 0, toast: 0 };
+    var clamp = function (v) { return Math.max(0, Math.min(1, v)); };
+
+    function render() {
+      var w = W * S.fw, h = H * S.fh;
+      dim.setAttribute("d", "M0 0H640V480H0Z M" + X + " " + Y + "H" + (X + w) + "V" + (Y + h) + "H" + X + "Z");
+      dim.style.opacity = 0.72 * S.dim;
+      frame.setAttribute("width", w); frame.setAttribute("height", h);
+      frame.style.opacity = S.fw > 0 ? 1 : 0;
+      var xs = [X, X + w / 2, X + w], ys = [Y, Y + h / 2, Y + h];
+      grid.forEach(function (g, i) { hs[i].setAttribute("x", xs[g[0]] - 4); hs[i].setAttribute("y", ys[g[1]] - 4); });
+      handles.style.opacity = S.hs;
+      tagT.textContent = Math.round(w * 1.6) + " × " + Math.round(h * 1.6);
+      tag.style.opacity = S.fw > 0 ? 1 : 0;
+      tb.style.opacity = S.tb; tb.setAttribute("transform", "translate(48 " + (276 + (1 - S.tb) * 10) + ")");
+      key.style.opacity = S.key;
+      toast.style.opacity = S.toast; toast.setAttribute("transform", "translate(320 " + (446 + (1 - S.toast) * 8) + ")");
+      parts.forEach(function (p, i) {
+        var t = clamp(S.ann * 3 - i);
+        p.style.strokeDasharray = lens[i]; p.style.strokeDashoffset = lens[i] * (1 - t);
+        p.style.opacity = t > 0 ? 1 : 0;
+      });
+    }
+
+    if (!motion) return;                                   /* markup already holds the finished state */
+    render();
+    var tl = A.createTimeline({ defaults: { ease: "outExpo" } });
+    var step = function (props, ms, at, ease) {
+      tl.add(S, Object.assign({ duration: ms, onUpdate: render }, props, ease ? { ease: ease } : {}), at);
+    };
+    step({ key: 1 }, 260, 650);
+    step({ dim: 1 }, 420, 900);
+    step({ key: 0 }, 260, 1250);
+    step({ fw: 1 }, 950, 1300);
+    step({ fh: 1 }, 950, 1380);
+    step({ hs: 1 }, 220, 2200);
+    step({ tb: 1 }, 420, 2350);
+    step({ ann: 1 }, 800, 2950, "inOutQuad");
+    step({ toast: 1 }, 320, 3900);
+  })();
+
+  /* ---- the route: the diagram draws itself, its readings resolve ---- */
+  function playRoute() {
+    var tl = A.createTimeline({ defaults: { ease: "outExpo" } });
+    tl.add(q(".route__line"), { opacity: [0, 1], scaleX: [0, 1], duration: 900, ease: "inOutQuad" }, 0)
+      .add(qa(".route__port"), { opacity: [0, 1], duration: 300, delay: A.stagger(200) }, 0)
+      .add(q(".route__tip"), { opacity: [0, 1], duration: 200 }, 800)
+      .add(qa(".route__panels > li"), { opacity: [0, 1], translateY: [8, 0], duration: 600, delay: A.stagger(110) }, 150);
+    qa(".route__panels .reading > span[aria-hidden]").forEach(function (s, i) {
+      setTimeout(function () { decode(s, 800); }, 350 + i * 130);
+    });
+    qa(".route__frame").forEach(focusIn);
   }
 
   /* ---- annotation playground ---- */
-  var cv = document.getElementById("cv");
-  var wrap = document.getElementById("cvwrap");
-  var hint = document.getElementById("pg-hint");
-  var tool = "pen", color = "#4f7dff";
-  var strokes = [], cur = null, drawing = false, W = 0, H = 0;
+  var cv = q("#cv"), wrap = q("#cvwrap"), hint = q("#pg-hint");
+  var tool = "pen", color = "", strokes = [], cur = null, drawing = false, W = 0, H = 0;
+  var ghost = null, ghostA = null;
   var ctx = cv.getContext("2d");
+  var swatch = function (name) { return getComputedStyle(root).getPropertyValue("--" + name).trim(); };
 
   function sizeCanvas() {
     var dpr = window.devicePixelRatio || 1;
@@ -405,7 +559,7 @@ var REPO = "catzuudon/captura";
     if (s.tool === "pen" || s.tool === "marker") {
       ctx.strokeStyle = s.color;
       ctx.lineWidth = s.tool === "marker" ? 16 : 3;
-      ctx.globalAlpha = s.tool === "marker" ? 0.28 : 1;
+      ctx.globalAlpha = s.alpha != null ? s.alpha : (s.tool === "marker" ? 0.28 : 1);
       ctx.beginPath();
       s.pts.forEach(function (p, i) { i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
       ctx.stroke(); ctx.globalAlpha = 1;
@@ -427,14 +581,29 @@ var REPO = "catzuudon/captura";
   function redraw(extra) {
     ctx.clearRect(0, 0, W, H);
     strokes.forEach(drawStroke);
+    if (ghost) drawStroke(ghost);
     if (extra) drawStroke(extra);
   }
-  function updateHint() { hint.style.display = strokes.length ? "none" : "flex"; }
+  function updateHint() { hint.hidden = strokes.length > 0; }
+  function stopGhost() { if (ghostA) { ghostA.pause(); ghostA = null; } if (ghost) { ghost = null; redraw(); } }
+
+  /* one pen stroke draws itself and fades, so the canvas says it can be drawn on */
+  function ghostStroke() {
+    if (!motion || strokes.length || drawing || ghost) return;
+    var pts = [], n = 48, i;
+    for (i = 0; i <= n; i++) { var t = i / n; pts.push({ x: W * (0.16 + 0.68 * t), y: H * (0.5 + 0.2 * Math.sin(t * Math.PI * 2.2)) }); }
+    ghost = { tool: "pen", color: swatch("swatch-2"), pts: pts.slice(0, 2), alpha: 1 };
+    var P = { n: 0, a: 1 };
+    ghostA = A.createTimeline({ onComplete: function () { ghost = null; ghostA = null; redraw(); } });
+    ghostA.add(P, { n: n, duration: 1500, ease: "inOutQuad", onUpdate: function () { if (ghost) { ghost.pts = pts.slice(0, Math.max(2, Math.round(P.n) + 1)); redraw(); } } }, 0)
+          .add(P, { a: 0, duration: 600, ease: "linear", onUpdate: function () { if (ghost) { ghost.alpha = P.a; redraw(); } } }, 2000);
+  }
 
   sizeCanvas();
   window.addEventListener("resize", function () { sizeCanvas(); redraw(); });
   cv.addEventListener("pointerdown", function (ev) {
     ev.preventDefault();
+    stopGhost();
     try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
     drawing = true; cur = { tool: tool, color: color, pts: [pt(ev)] };
   });
@@ -453,94 +622,73 @@ var REPO = "catzuudon/captura";
   cv.addEventListener("pointerup", endStroke);
   cv.addEventListener("pointercancel", endStroke);
 
-  document.querySelectorAll(".tool").forEach(function (btn) {
+  qa(".tool").forEach(function (btn) {
     btn.addEventListener("click", function () {
       tool = btn.getAttribute("data-tool");
-      document.querySelectorAll(".tool").forEach(function (b) {
-        var on = b === btn;
-        b.style.borderColor = on ? "var(--accent)" : "rgba(255,255,255,.08)";
-        b.style.background = on ? "color-mix(in srgb, var(--accent) 18%, transparent)" : "#161619";
-        b.style.color = on ? "#fff" : "#cfcfd6";
-      });
+      qa(".tool").forEach(function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
     });
   });
-  document.querySelectorAll(".swatch").forEach(function (sw) {
+  qa(".swatch").forEach(function (sw) {
     sw.addEventListener("click", function () {
-      color = sw.getAttribute("data-color");
-      document.querySelectorAll(".swatch").forEach(function (s) {
-        var on = s === sw;
-        s.style.outline = on ? "2px solid " + s.getAttribute("data-color") : "none";
-        s.style.outlineOffset = on ? "3px" : "0";
-      });
+      color = swatch(sw.getAttribute("data-color"));
+      qa(".swatch").forEach(function (s) { s.setAttribute("aria-pressed", String(s === sw)); });
+      if (ready && motion) A.animate(sw, { scale: [0.7, 1], duration: 420, ease: "outExpo" });
     });
   });
-  document.getElementById("pg-undo").addEventListener("click", function () {
+  q("#pg-undo").addEventListener("click", function () {
     if (strokes.length) { strokes.pop(); redraw(); updateHint(); }
   });
-  document.getElementById("pg-clear").addEventListener("click", function () {
+  q("#pg-clear").addEventListener("click", function () {
     strokes = []; redraw(); updateHint();
   });
-  // default selections
-  document.querySelector('.tool[data-tool="pen"]').click();
-  document.querySelector('.swatch[data-color="#4f7dff"]').click();
+  q('.tool[data-tool="pen"]').click();
+  q('.swatch[data-color="swatch-2"]').click();
 
   /* ---- OCR demo ---- */
-  var OCR_FULL = "Captura — local OCR\nRecognized fully on-device.\nNo network, no uploads.\nYour text never leaves the machine.";
-  var ocrTimer = null;
-  var elScan = document.getElementById("ocr-scan");
-  var elIdle = document.getElementById("ocr-idle");
-  var elPre = document.getElementById("ocr-pre");
-  var elCount = document.getElementById("ocr-count");
-  var elRun = document.getElementById("ocr-run");
-  var elLoading = document.getElementById("ocr-loading");
-  var elActions = document.getElementById("ocr-actions");
+  var OCR_FULL = "Captura: local OCR\nRecognized fully on-device.\nNo network, no uploads.\nYour text never leaves the machine.";
+  var ocrRun = null;
+  var elScan = q("#ocr-scan"), elIdle = q("#ocr-idle"), elPre = q("#ocr-pre"), elCount = q("#ocr-count");
+  var elRun = q("#ocr-run"), elLoading = q("#ocr-loading"), elActions = q("#ocr-actions"), elShot = q(".ocr__shot");
 
   function setCount() { elCount.textContent = elPre.textContent.length + " chars"; }
-  // Exactly one of {Extract} / {Scanning} / {Copy+Reset} is ever visible.
+  /* exactly one of {Extract} / {Scanning} / {Copy + Reset} is ever visible */
   function setOcrState(state) {
-    elIdle.style.display = state === "idle" ? "inline" : "none";
-    elRun.style.display = state === "idle" ? "inline-flex" : "none";
-    elLoading.style.display = state === "running" ? "inline-flex" : "none";
-    elActions.style.display = state === "done" ? "flex" : "none";
-    elScan.style.display = state === "running" ? "block" : "none";
+    elIdle.hidden = state !== "idle";
+    elRun.hidden = state !== "idle";
+    elLoading.hidden = state !== "running";
+    elActions.hidden = state !== "done";
+    elScan.hidden = state !== "running";
   }
+  function finishOcr() { elPre.textContent = OCR_FULL; setCount(); setOcrState("done"); }
   setOcrState("idle");
   elRun.addEventListener("click", function () {
-    if (elRun.style.display === "none") return;  // already running/done
+    if (elRun.hidden) return;
     setOcrState("running");
     elPre.textContent = ""; setCount();
-    setTimeout(function () {
-      var i = 0;
-      ocrTimer = setInterval(function () {
-        i += 1 + Math.round(Math.random() * 1.4);
-        if (i >= OCR_FULL.length) {
-          clearInterval(ocrTimer);
-          elPre.textContent = OCR_FULL; setCount();
-          setOcrState("done");
-          return;
-        }
-        elPre.textContent = OCR_FULL.slice(0, i); setCount();
-      }, 40);
-    }, 1100);
+    if (!motion) { setTimeout(finishOcr, 400); return; }
+    var P = { n: 0, y: 0 }, h = elShot.offsetHeight + 42;
+    ocrRun = A.createTimeline({ onComplete: finishOcr });
+    ocrRun.add(P, { y: h, duration: 1100, ease: "inOutQuad", onUpdate: function () { elScan.style.transform = "translateY(" + (P.y - 42) + "px)"; } }, 0)
+          .add(P, { n: OCR_FULL.length, duration: 1800, ease: "linear", onUpdate: function () { elPre.textContent = OCR_FULL.slice(0, Math.round(P.n)); setCount(); } }, 1000);
   });
-  document.getElementById("ocr-reset").addEventListener("click", function () {
-    if (ocrTimer) clearInterval(ocrTimer);
+  q("#ocr-reset").addEventListener("click", function () {
+    if (ocrRun) ocrRun.pause();
     elPre.textContent = ""; setCount();
     setOcrState("idle");
   });
-  document.getElementById("ocr-copy").addEventListener("click", function () {
+  q("#ocr-copy").addEventListener("click", function () {
     try {
       navigator.clipboard.writeText(OCR_FULL);
-      document.getElementById("ocr-copy-label").textContent = "Copied!";
-      setTimeout(function () { document.getElementById("ocr-copy-label").textContent = "Copy"; }, 1500);
+      q("#ocr-copy-label").textContent = "Copied";
+      setTimeout(function () { q("#ocr-copy-label").textContent = "Copy"; }, 1500);
     } catch (e) {}
   });
 
   /* ---- downloads: OS detection + latest GitHub release ---- */
   var PLATFORMS = [
-    { key: "macos", label: "macOS", match: /mac/i, suffix: "-macos.dmg" },
-    { key: "windows", label: "Windows", match: /win/i, suffix: "-windows-setup.exe" },
-    { key: "linux", label: "Linux", match: /linux|x11|ubuntu/i, suffix: "-linux-x86_64.tar.gz" }
+    { key: "macos", label: "macOS", match: /mac/i, suffix: "-macos.dmg", tab: "macos" },
+    { key: "windows", label: "Windows", match: /win/i, suffix: "-windows-setup.exe", tab: "windows" },
+    { key: "linux", label: "Linux", match: /linux|x11|ubuntu/i, suffix: "-linux-x86_64.tar.gz", tab: "macos" }
   ];
   function here() {
     var ua = navigator.userAgent;
@@ -561,7 +709,7 @@ var REPO = "catzuudon/captura";
     .then(function (r) { if (!r.ok) throw 0; return r.json(); })
     .then(function (data) {
       var ver = data.tag_name || "";
-      document.getElementById("ver-pill").lastChild.textContent = ver + " · free & open source";
+      document.getElementById("ver-pill").textContent = ver + ", free and open source";
       var note = document.getElementById("dl-note");
       var assetFor = function (pl) {
         return (data.assets || []).filter(function (a) { return a.name.indexOf(pl.suffix) >= 0; })[0];
@@ -571,12 +719,170 @@ var REPO = "catzuudon/captura";
         document.getElementById("dl-hero").href = mine.browser_download_url;
         document.getElementById("dl-cta").href = mine.browser_download_url;
       }
-      if (note) note.textContent = ver + (p.key === "linux" ? " · extract and run ./Captura/Captura" : " · unsigned build — see “Opening on " + p.label + "” below");
+      if (note) note.textContent = ver + (p.key === "linux" ? ". Extract and run ./Captura/Captura." : ". Unsigned build: see “Opening on " + p.label + "” below.");
     })
     .catch(function () {
       var note = document.getElementById("dl-note");
-      if (note) note.textContent = "All downloads on GitHub Releases →";
+      if (note) note.textContent = "All downloads are on GitHub Releases.";
     });
+
+  /* ---- first-launch help: a switcher whose panels slide; every panel shows without script ---- */
+  (function () {
+    var list = q(".help__tabs"), stage = q(".help__stage"); if (!list || !stage) return;
+    var tabs = qa('[role="tab"]', list), panels = tabs.map(function (t) { return document.getElementById(t.getAttribute("aria-controls")); });
+    var cur = 0, slide = null;
+    function settle() {                                    /* end any slide in flight and leave only the current panel */
+      if (slide) { slide.pause(); slide = null; }
+      panels.forEach(function (pn, k) {
+        pn.style.position = pn.style.top = pn.style.left = pn.style.width = pn.style.transform = pn.style.opacity = "";
+        pn.hidden = k !== cur;
+      });
+    }
+    function equalize() {                                  /* same box for every panel, so a slide never changes the page's height */
+      settle();
+      panels.forEach(function (pn) { pn.style.minHeight = ""; pn.hidden = false; });
+      var tall = Math.max.apply(null, panels.map(function (pn) { return pn.offsetHeight; }));
+      panels.forEach(function (pn, k) { pn.style.minHeight = tall + "px"; pn.hidden = k !== cur; });
+    }
+    function pick(i, focus) {
+      var from = cur;
+      tabs.forEach(function (t, j) { t.setAttribute("aria-selected", String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+      if (focus) tabs[i].focus();
+      if (i === from) return;
+      settle(); cur = i;
+      if (!(ready && motion)) { settle(); return; }
+      var dir = i > from ? 1 : -1, out = panels[from], inn = panels[i];
+      inn.hidden = false;
+      out.hidden = false; out.style.position = "absolute"; out.style.top = "0"; out.style.left = "0"; out.style.width = "100%";
+      slide = A.createTimeline({ defaults: { ease: "outExpo", duration: 700 }, onComplete: settle });
+      slide.add(out, { translateX: ["0%", (-dir * 108) + "%"], opacity: [1, 0] }, 0)
+           .add(inn, { translateX: [(dir * 108) + "%", "0%"], opacity: [0, 1] }, 0);
+      focusIn(inn);
+    }
+    stage.classList.add("is-switcher");
+    list.hidden = false;
+    cur = Math.max(0, ["macos", "windows"].indexOf(p.tab));
+    tabs.forEach(function (t, j) { t.setAttribute("aria-selected", String(cur === j)); t.tabIndex = cur === j ? 0 : -1; });
+    equalize();
+    window.addEventListener("resize", function () { equalize(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(equalize);
+    tabs.forEach(function (t, i) {
+      t.addEventListener("click", function () { pick(i); });
+      t.addEventListener("keydown", function (e) {
+        var k = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (k) { e.preventDefault(); pick((i + k + tabs.length) % tabs.length, true); }
+      });
+    });
+  })();
+
+  /* ---- the motion layer: nav, scroll, clicks, buttons ---- */
+  function initMotion() {
+    var nav = q(".nav");
+    var heads = qa(".head h2, .get h2");
+    var h1Words = splitWords(q(".hero h1"));
+    heads.forEach(function (h) { h._w = splitWords(h); });
+    qa(".hero .lead, .hero__actions, .fine, .demo, .head .lead, .get .lead, .get > div:last-child, .stage, .ocr, .help, .colophon__grid")
+      .forEach(function (el) { el.setAttribute("data-in", ""); });
+
+    /* page load: the pill drops in, the headline rises word by word, the rest follows */
+    A.createTimeline({ defaults: { ease: "outExpo" } })
+      .add(nav, { translateY: [-28, 0], opacity: [0, 1], duration: 700 }, 0)
+      .add(h1Words, { translateY: ["110%", "0%"], duration: 900, delay: A.stagger(70) }, 120)
+      .add(q(".demo"), { opacity: [0, 1], translateY: [18, 0], duration: 900 }, 250)
+      .add(q(".hero .lead"), { opacity: [0, 1], translateY: [12, 0], duration: 700 }, 650)
+      .add(q(".hero__actions"), { opacity: [0, 1], translateY: [12, 0], duration: 700 }, 780)
+      .add(q(".fine"), { opacity: [0, 1], duration: 700 }, 950);
+
+    /* parallax: the backdrop's layers travel at different speeds, and the hero text lags its picture a little */
+    var layers = [
+      { el: q(".bg__grid--a"), f: 0.10, mod: 48 },
+      { el: q(".bg__grid--b"), f: 0.28, mod: 192 },
+      { el: q(".bg__glow--1"), f: 0.22 },
+      { el: q(".bg__glow--2"), f: 0.16 },
+      { el: q(".hero__grid > div:first-child"), hero: true }
+    ].filter(function (l) { return l.el; });
+    function parallax() {
+      var y = sy();
+      layers.forEach(function (l) {
+        var ty = l.hero ? Math.min(y, 900) * 0.12 : (l.mod ? -((y * l.f) % l.mod) : -y * l.f);
+        l.el.style.transform = "translate3d(0," + ty.toFixed(1) + "px,0)";
+      });
+    }
+    hooks.push(parallax); parallax();
+
+    /* menu clicks: an eased scroll, then the destination's corners snap into focus */
+    var scrollA = null;
+    function stopScroll() { if (scrollA) { scrollA.pause(); scrollA = null; } }
+    ["wheel", "touchstart", "keydown"].forEach(function (t) { window.addEventListener(t, stopScroll, { passive: true }); });
+    function goTo(id) {
+      var t = document.getElementById(id); if (!t) return false;
+      var pad = parseFloat(getComputedStyle(root).scrollPaddingTop) || 0;
+      var y = Math.max(0, t.getBoundingClientRect().top + sy() - pad), o = { y: sy() };
+      stopScroll();
+      scrollA = A.animate(o, {
+        y: y, duration: Math.min(1400, Math.max(650, Math.abs(y - o.y) * 0.6)), ease: "inOutCubic",
+        onUpdate: function () { window.scrollTo(0, o.y); },
+        onComplete: function () {
+          scrollA = null; focusIn(t);
+          t.setAttribute("tabindex", "-1"); try { t.focus({ preventScroll: true }); } catch (e) {}
+        }
+      });
+      return true;
+    }
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a || a.getAttribute("href").length < 2 || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      var id = a.getAttribute("href").slice(1);
+      if (!goTo(id)) return;
+      e.preventDefault();
+      try { history.pushState(null, "", "#" + id); } catch (err) {}
+    });
+
+    /* scroll: each block arrives once, headings word by word */
+    if (!("IntersectionObserver" in window)) { fail("no IntersectionObserver"); return; }
+    function reveal(el) {
+      if (el.matches(".head, .get > div:first-child")) {
+        var h = q("h2", el), l = q(".lead", el);
+        if (h && h._w) A.animate(h._w, { translateY: ["110%", "0%"], duration: 850, delay: A.stagger(55), ease: "outExpo" });
+        if (l) A.animate(l, { opacity: [0, 1], translateY: [12, 0], duration: 700, delay: 260, ease: "outExpo" });
+        return;
+      }
+      if (el.matches(".route")) { playRoute(); return; }
+      fadeUp(el, el.matches(".get > div:last-child") ? 160 : 0);
+      focusIn(el);
+      if (el.matches(".stage")) setTimeout(ghostStroke, 900);
+    }
+    var seen = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        seen.unobserve(e.target);
+        try { reveal(e.target); } catch (err) { fail(err); }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -6% 0px" });
+    qa(".head, .get > div:first-child, .route, .stage, .ocr, .get > div:last-child, .help, .colophon__grid").forEach(function (el) { seen.observe(el); });
+
+    /* the route's nodes answer the pointer: the port lights, the reading resolves again */
+    var ports = qa(".route__port");
+    qa(".route__panels > li").forEach(function (li, i) {
+      var rd = q(".reading > span[aria-hidden]", li);
+      li.addEventListener("pointerenter", function () { if (ports[i]) ports[i].classList.add("is-on"); if (rd) decode(rd, 520); });
+      li.addEventListener("pointerleave", function () { if (ports[i]) ports[i].classList.remove("is-on"); });
+    });
+
+    /* buttons and links: a ripple from the press point */
+    document.addEventListener("pointerdown", function (e) {
+      var b = e.target.closest && e.target.closest(".btn, .nav__links a");
+      if (!b || b.disabled) return;
+      var r = b.getBoundingClientRect(), s = document.createElement("span");
+      s.className = "ripple";
+      s.style.left = (e.clientX - r.left) + "px"; s.style.top = (e.clientY - r.top) + "px";
+      b.appendChild(s);
+      A.animate(s, { scale: [0, Math.max(r.width, r.height) * 2.6 / 8], opacity: [0.26, 0], duration: 650, ease: "outCubic", onComplete: function () { s.remove(); } });
+    });
+  }
+
+  if (motion) { try { initMotion(); } catch (e) { fail(e); } }
+  ready = true;
 })();
 </script>
 </body>
