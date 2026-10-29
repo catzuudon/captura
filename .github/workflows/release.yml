@@ -168,7 +168,7 @@ jobs:
 
             Download for your platform below. OCR works out of the box — Tesseract
             is bundled, no separate install needed. See the README for the one-time
-            macOS permission grants (Screen Recording + Input Monitoring).
+            macOS permission grant (Screen Recording).
 
             **Unsigned builds**: macOS/Windows will warn on first launch — this is
             expected for an open-source app without a paid signing certificate. See

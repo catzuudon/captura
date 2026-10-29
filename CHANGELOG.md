@@ -3,6 +3,24 @@
 All notable changes to Captura are documented here. This project follows
 [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
+## [1.1.5] — 2026-10-29
+
+A security update. Nothing about how Captura behaves has changed.
+
+### Security
+- **Pillow 12.3.0 → 13.0.0.** GitHub's dependency scan listed 82 advisories
+  against Pillow 12.3.0 (10 critical, 46 high, 26 moderate), and 13.0.0 is the
+  first patched release for every one of them. Captura's only runtime use of
+  Pillow is converting a region you captured into an image for OCR, so practical
+  exposure was narrow, but the installers bundle Pillow, so the fix only reaches
+  you with a new build. Checked on 13.0.0 before release: OCR output through the
+  app's own code path is identical to 12.3.0, the module import smoke test
+  passes, and the `.ico` packing used by `scripts/make_icons.py` still works.
+
+### Fixed
+- The release notes no longer tell macOS users to grant Input Monitoring, which
+  Captura has not needed since 1.1.4.
+
 ## [1.1.4] — 2026-09-18
 
 The real fix for "the hotkey randomly stops working" on macOS — and it turned
