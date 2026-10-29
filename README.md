@@ -9,6 +9,8 @@ A minimalist screenshot utility that gets out of your way. Press a key, select a
 
 Think Lightshot, but cleaner, faster, and smarter.
 
+**Website and downloads:** <https://catzuudon.github.io/captura/>
+
 ## Features
 
 - **Instant capture** — global hotkey freezes and dims the screen; drag to select with live dimensions

@@ -16,8 +16,9 @@ Please don't file public issues with exploit details.
 
 Captura is a local desktop application:
 
-- **No network access.** It does not connect to the internet, upload captures,
-  or send telemetry.
+- **No network access by default.** It does not upload captures or send
+  telemetry. The only optional connection is an update check, off by default,
+  that makes one anonymous request to GitHub's public releases API.
 - **No shell execution**, no `eval`/`exec`, no deserialization of untrusted
   data (`pickle`/`yaml`/etc.).
 - OCR runs the local Tesseract binary; the OCR language string is validated

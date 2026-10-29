@@ -31,3 +31,6 @@ CLAUDE.md
 
 # Local-only notes (not published)
 notes/
+
+# Design-tool scratch (screenshots, lint records); never publish
+.hallmark/
